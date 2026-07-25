@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>今日のメニュー</title>
+<style>
+  :root{
+    --bg: #0B0D10;
+    --panel: #15181C;
+    --panel-2: #1D2126;
+    --line: #2A2F35;
+    --text: #ECEDEE;
+    --muted: #82898F;
+    --accent: #FFB020;   /* barbell-plate amber */
+    --accent-dim: #6b5220;
+    --done: #35D48A;     /* completed green */
+    --danger: #FF5A4E;
+    --mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0; padding:0; height:100%; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Segoe UI',sans-serif;
+    overscroll-behavior:none;}
+  #app{max-width:480px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; position:relative;}
+
+  header.topbar{
+    padding:18px 20px 14px;
+    border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:var(--bg); z-index:5;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .eyebrow{font-size:11px; letter-spacing:0.14em; color:var(--muted); text-transform:uppercase; font-weight:600;}
+  .day-title{font-size:26px; font-weight:800; letter-spacing:-0.01em; margin-top:2px; display:flex; align-items:baseline; gap:8px;}
+  .day-title .num{color:var(--accent); font-family:var(--mono);}
+  .icon-btn{background:none; border:none; color:var(--muted); font-size:20px; padding:8px; cursor:pointer;}
+
+  main{flex:1; padding:16px 16px 100px;}
+
+  .ex-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:16px;
+    margin-bottom:12px;
+    display:flex; align-items:center; gap:14px;
+    cursor:pointer;
+    transition:border-color .15s;
+  }
+  .ex-card:active{background:var(--panel-2);}
+  .ex-card.done{border-color:var(--done);}
+  .checkmark{
+    width:30px; height:30px; border-radius:50%; flex:0 0 30px;
+    border:2px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; color:transparent;
+  }
+  .ex-card.done .checkmark{border-color:var(--done); background:var(--done); color:#0B0D10;}
+  .ex-body{flex:1; min-width:0;}
+  .ex-name{font-size:16px; font-weight:700;}
+  .ex-meta{font-size:12.5px; color:var(--muted); margin-top:3px; font-family:var(--mono);}
+  .ex-tag{font-size:10px; letter-spacing:.06em; color:var(--muted); border:1px solid var(--line); border-radius:6px; padding:2px 6px; margin-left:4px; text-transform:uppercase;}
+  .chevron{color:var(--muted); font-size:18px;}
+
+  .finish-bar{
+    position:fixed; bottom:0; left:0; right:0;
+    max-width:480px; margin:0 auto;
+    padding:14px 16px 22px;
+    background:linear-gradient(to top, var(--bg) 60%, transparent);
+  }
+  .btn{
+    display:block; width:100%; text-align:center;
+    padding:16px; border-radius:14px; border:none;
+    font-size:16px; font-weight:800; letter-spacing:.02em;
+    cursor:pointer; font-family:inherit;
+  }
+  .btn-primary{background:var(--accent); color:#1a1200;}
+  .btn-primary:disabled{background:var(--panel-2); color:var(--muted);}
+  .btn-secondary{background:var(--panel-2); color:var(--text); border:1px solid var(--line);}
+  .btn-ghost{background:none; color:var(--muted); border:1px solid var(--line);}
+  .btn-danger{background:none; color:var(--danger); border:1px solid var(--danger);}
+
+  /* detail screen */
+  .section-label{font-size:11px; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; font-weight:700; margin:22px 0 10px;}
+  .prev-record{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px;
+    display:flex; justify-content:space-around; text-align:center;
+  }
+  .prev-record .item .val{font-family:var(--mono); font-size:22px; font-weight:700;}
+  .prev-record .item .lbl{font-size:11px; color:var(--muted); margin-top:4px;}
+  .prev-empty{color:var(--muted); font-size:14px; text-align:center; padding:14px;}
+
+  .input-row{display:flex; gap:10px; margin-bottom:10px;}
+  .field{flex:1;}
+  .field label{font-size:12px; color:var(--muted); display:block; margin-bottom:6px;}
+  .field input{
+    width:100%; background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:14px; font-size:20px; color:var(--text); font-family:var(--mono); text-align:center;
+  }
+  .field input:focus{outline:none; border-color:var(--accent);}
+
+  .sets-list{display:flex; flex-direction:column; gap:10px; margin-top:6px;}
+  .set-row{
+    display:flex; align-items:center; gap:10px;
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px 14px;
+  }
+  .set-row.checked{border-color:var(--done);}
+  .set-box{
+    width:26px; height:26px; border-radius:8px; border:2px solid var(--line); flex:0 0 26px;
+    display:flex; align-items:center; justify-content:center; color:transparent; font-size:14px;
+    cursor:pointer;
+  }
+  .set-row.checked .set-box{background:var(--done); border-color:var(--done); color:#0B0D10;}
+  .set-label{font-weight:700; font-size:14px; flex:0 0 42px;}
+  .set-inputs{display:flex; gap:8px; margin-left:auto; flex-shrink:0;}
+  .set-inputs input{
+    width:72px; flex:none;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    padding:10px 6px; font-size:16px; color:var(--text); font-family:var(--mono); text-align:center;
+  }
+  .set-inputs input[data-set-field="reps"]{width:56px;}
+  .set-inputs input:focus{outline:none; border-color:var(--accent);}
+  .set-inputs input::placeholder{color:var(--muted); font-size:12px;}
+  .btn-add-set{
+    width:100%; padding:14px; margin-top:6px;
+    border-radius:14px; border:1px dashed var(--line);
+    background:none; color:var(--accent);
+    font-size:15px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .btn-add-set:disabled{opacity:.4; cursor:default;}
+  .work-date-badge{
+    display:inline-block; font-size:12px; font-weight:600; color:var(--accent);
+    background:var(--panel); border:1px solid var(--accent-dim); border-radius:8px;
+    padding:4px 10px; margin-top:6px; font-family:var(--mono);
+  }
+  .btn-today-link{
+    display:block; text-align:center; margin-bottom:12px;
+    background:none; border:none; color:var(--muted); font-size:13px;
+    cursor:pointer; font-family:inherit; text-decoration:underline;
+  }
+  .prev-sets{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:14px 18px;}
+  .prev-set-row{font-family:var(--mono); font-size:14px; padding:6px 0; border-top:1px solid var(--line); display:flex; justify-content:space-between;}
+  .prev-set-row:first-child{border-top:none;}
+  .prev-set-row .lbl{color:var(--muted); font-size:12px;}
+
+  .timer-box{
+    margin-top:22px; background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding:20px; text-align:center;
+  }
+  .timer-display{font-family:var(--mono); font-size:40px; font-weight:800; color:var(--accent); margin-bottom:12px;}
+
+  textarea{
+    width:100%; background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:14px; font-size:14px; color:var(--text); font-family:inherit; resize:vertical; min-height:70px;
+  }
+  textarea:focus{outline:none; border-color:var(--accent);}
+
+  .yt-frame{width:100%; aspect-ratio:16/9; border-radius:14px; overflow:hidden; border:1px solid var(--line); background:#000;}
+  .yt-frame iframe{width:100%; height:100%; border:0;}
+  .yt-link{font-family:var(--mono); font-size:13px; color:var(--accent); word-break:break-all; display:block; margin-top:10px;}
+
+  /* history */
+  .hist-item{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:10px;}
+  .hist-date{font-family:var(--mono); font-size:12px; color:var(--muted);}
+  .hist-day{font-weight:800; font-size:16px; margin:2px 0 8px;}
+  .hist-ex{font-size:13px; color:var(--text); padding:3px 0; border-top:1px solid var(--line); display:flex; justify-content:space-between;}
+  .hist-ex:first-of-type{border-top:none;}
+  .hist-ex .v{color:var(--muted); font-family:var(--mono); font-size:12px;}
+
+  .empty-state{text-align:center; padding:60px 20px; color:var(--muted);}
+  .empty-state .big{font-size:40px; margin-bottom:10px;}
+
+  /* routine editor */
+  .day-tabs{display:flex; gap:8px; margin-bottom:16px;}
+  .day-tab{flex:1; text-align:center; padding:10px; border-radius:12px; border:1px solid var(--line); background:var(--panel); font-weight:700; font-size:13px; cursor:pointer;}
+  .day-tab.active{border-color:var(--accent); color:var(--accent);}
+  .edit-row{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:10px;}
+  .edit-row input, .edit-row select{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    padding:10px; color:var(--text); font-size:14px; margin-bottom:8px; font-family:inherit;
+  }
+  .edit-row .row-actions{display:flex; justify-content:flex-end;}
+  .small-danger{color:var(--danger); background:none; border:none; font-size:13px; cursor:pointer; padding:4px 8px;}
+
+  .modal-actions{display:flex; flex-direction:column; gap:10px; margin-top:24px;}
+
+  /* calendar */
+  .cal-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+  .cal-nav .cal-month{font-size:18px; font-weight:800; font-family:var(--mono);}
+  .cal-nav button{background:var(--panel); border:1px solid var(--line); color:var(--text); width:36px; height:36px; border-radius:10px; font-size:16px; cursor:pointer;}
+  .cal-weekdays{display:grid; grid-template-columns:repeat(7,1fr); text-align:center; margin-bottom:6px;}
+  .cal-weekdays span{font-size:11px; color:var(--muted); font-weight:700;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
+  .cal-cell{
+    aspect-ratio:1; border-radius:12px; border:1px solid var(--line); background:var(--panel);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    font-size:13px; color:var(--muted); position:relative; cursor:pointer;
+  }
+  .cal-cell.empty{border:none; background:none;}
+  .cal-cell.today{border-color:var(--text);}
+  .cal-cell.trained{color:#0B0D10; font-weight:800; cursor:pointer;}
+  .cal-cell .cal-tag{font-size:9px; font-weight:800; letter-spacing:.02em;}
+  .cal-cell.selected{outline:2px solid var(--text); outline-offset:2px;}
+  .cal-legend{display:flex; gap:14px; margin-top:14px; flex-wrap:wrap;}
+  .cal-legend .dot{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle;}
+  .cal-legend span.lbl{font-size:12px; color:var(--muted);}
+  .cal-detail{margin-top:20px;}
+
+  a.plain{color:inherit; text-decoration:none;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const STORAGE_KEYS = { routine: 'routine_v1', currentDay: 'current_day_idx', history: 'history_v1', sessions: 'sessions_v1' };
+
+const DEFAULT_ROUTINE = [
+  { id:'d1', name:'胸', exercises:[
+    { id:'ex1', type:'weight', name:'ベンチプレス' },
+    { id:'ex2', type:'weight', name:'インクラインダンベルプレス' },
+    { id:'ex3', type:'video', name:'YouTubeダンベルサーキット', url:'', note:'' }
+  ]},
+  { id:'d2', name:'脚', exercises:[
+    { id:'ex4', type:'weight', name:'スクワット' },
+    { id:'ex5', type:'weight', name:'レッグプレス' }
+  ]},
+  { id:'d3', name:'背中', exercises:[
+    { id:'ex6', type:'weight', name:'デッドリフト' },
+    { id:'ex7', type:'weight', name:'ラットプルダウン' }
+  ]}
+];
+
+let state = {
+  routine: null,
+  currentDayIdx: 0,
+  history: [],
+  sessions: {}, // { [`${date}_${dayId}`]: { date, dayId, dayName, exercises } }
+  workDate: null, // 編集中の日付（null = 今日）
+  screen: { name: 'home' }, // home | detail | history | editor | calendar
+  timer: { running:false, remaining:60, handle:null }
+};
+
+async function storageGet(key){
+  try{
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e){ console.error('storage get failed', key, e); return null; }
+}
+async function storageSet(key, value){
+  try{
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch(e){ console.error('storage set failed', key, e); }
+}
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function createEmptySet(weight='', reps=''){
+  return { weight: String(weight), reps: String(reps), completed: false };
+}
+
+function migrateExerciseData(rec){
+  if(!rec || !Array.isArray(rec.sets)) return rec;
+  if(rec.sets.length && typeof rec.sets[0] === 'object') return rec;
+  const weight = rec.weight || '';
+  const reps = rec.reps || '';
+  rec.sets = rec.sets.map(completed => ({ weight, reps, completed: !!completed }));
+  delete rec.weight;
+  delete rec.reps;
+  return rec;
+}
+
+function migrateAllData(){
+  let changed = false;
+  state.history.forEach(h=>{
+    Object.keys(h.exercises || {}).forEach(exId=>{
+      const rec = h.exercises[exId];
+      if(rec.sets && rec.sets.length && typeof rec.sets[0] !== 'object'){
+        h.exercises[exId] = migrateExerciseData(rec);
+        changed = true;
+      }
+    });
+  });
+  Object.keys(state.sessions).forEach(dayId=>{
+    const session = state.sessions[dayId];
+    Object.keys(session.exercises || {}).forEach(exId=>{
+      const rec = session.exercises[exId];
+      if(rec.sets && rec.sets.length && typeof rec.sets[0] !== 'object'){
+        session.exercises[exId] = migrateExerciseData(rec);
+        changed = true;
+      }
+    });
+  });
+  return changed;
+}
+
+function getWorkDate(){
+  return state.workDate || todayStr();
+}
+
+function sessionKey(date, dayId){
+  return date + '_' + dayId;
+}
+
+function findHistoryEntry(date, dayId){
+  return state.history.find(h => h.date === date && h.dayId === dayId) || null;
+}
+
+function cloneExercisesFromHistory(histExercises){
+  const exercises = {};
+  Object.keys(histExercises || {}).forEach(exId=>{
+    const rec = histExercises[exId];
+    if(rec.sets){
+      exercises[exId] = {
+        sets: rec.sets.map(s => ({ weight: s.weight || '', reps: s.reps || '', completed: !!s.completed })),
+        completed: !!rec.completed
+      };
+    } else {
+      exercises[exId] = { completed: !!rec.completed };
+    }
+  });
+  return exercises;
+}
+
+function createFreshExercises(day){
+  const exercises = {};
+  day.exercises.forEach(ex=>{
+    if(ex.type === 'weight'){
+      exercises[ex.id] = { sets: [], completed: false };
+    } else {
+      exercises[ex.id] = { completed: false };
+    }
+  });
+  return exercises;
+}
+
+function migrateSessions(){
+  let changed = false;
+  const newSessions = {};
+  Object.keys(state.sessions).forEach(key=>{
+    const s = state.sessions[key];
+    if(/^\d{4}-\d{2}-\d{2}_/.test(key)){
+      newSessions[key] = s;
+      return;
+    }
+    const date = s.date || todayStr();
+    const newKey = sessionKey(date, key);
+    newSessions[newKey] = { ...s, dayId: key, date };
+    changed = true;
+  });
+  if(changed) state.sessions = newSessions;
+  return changed;
+}
+
+function formatSetsSummary(sets){
+  if(!sets || !sets.length) return '未入力';
+  if(typeof sets[0] === 'boolean') return '未入力';
+  const parts = sets
+    .filter(s => s.weight || s.reps)
+    .map(s => `${s.weight || '-'}kg×${s.reps || '-'}`);
+  return parts.length ? parts.join(', ') : '未入力';
+}
+
+function ensureSession(day){
+  const dateStr = getWorkDate();
+  const key = sessionKey(dateStr, day.id);
+  const existing = state.sessions[key];
+  if(existing) return existing;
+
+  const histEntry = findHistoryEntry(dateStr, day.id);
+  if(histEntry){
+    const session = {
+      date: dateStr,
+      dayId: day.id,
+      dayName: day.name,
+      exercises: cloneExercisesFromHistory(histEntry.exercises)
+    };
+    day.exercises.forEach(ex=>{
+      if(!session.exercises[ex.id]){
+        session.exercises[ex.id] = ex.type === 'weight'
+          ? { sets: [], completed: false }
+          : { completed: false };
+      }
+    });
+    state.sessions[key] = session;
+    return session;
+  }
+
+  const fresh = {
+    date: dateStr,
+    dayId: day.id,
+    dayName: day.name,
+    exercises: createFreshExercises(day)
+  };
+  state.sessions[key] = fresh;
+  return fresh;
+}
+function getSession(day){
+  return ensureSession(day);
+}
+
+function getLastRecord(exId, excludeDate){
+  const cutoff = excludeDate || getWorkDate();
+  for(let i = state.history.length - 1; i >= 0; i--){
+    const h = state.history[i];
+    if(h.date === cutoff) continue;
+    if(h.exercises && h.exercises[exId]) return h.exercises[exId];
+  }
+  return null;
+}
+
+function isExerciseDone(ex, session){
+  const rec = session.exercises[ex.id];
+  if(!rec) return false;
+  if(ex.type === 'video') return !!rec.completed;
+  return rec.sets.every(s=>s.completed) && rec.sets.length>0;
+}
+
+function allDone(day, session){
+  return day.exercises.every(ex=>isExerciseDone(ex, session));
+}
+
+function esc(s){
+  return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function youtubeEmbedUrl(url){
+  if(!url) return null;
+  let id = null;
+  const m1 = url.match(/(?:youtu\.be\/|v=)([a-zA-Z0-9_-]{6,})/);
+  if(m1) id = m1[1];
+  if(!id) return null;
+  return 'https://www.youtube.com/embed/' + id;
+}
+
+function render(){
+  const app = document.getElementById('app');
+  const day = state.routine[state.currentDayIdx];
+
+  if(state.screen.name === 'home') app.innerHTML = renderHome(day);
+  else if(state.screen.name === 'detail') app.innerHTML = renderDetail(day, state.screen.exId);
+  else if(state.screen.name === 'history') app.innerHTML = renderHistory();
+  else if(state.screen.name === 'editor') app.innerHTML = renderEditor();
+  else if(state.screen.name === 'calendar') app.innerHTML = renderCalendar();
+
+  attachHandlers(day);
+}
+
+function renderHome(day){
+  const session = getSession(day);
+  const workDate = getWorkDate();
+  const isToday = workDate === todayStr();
+  const cards = day.exercises.map(ex=>{
+    const done = isExerciseDone(ex, session);
+    const rec = session.exercises[ex.id];
+    let meta = '';
+    if(ex.type === 'weight'){
+      const filled = rec.sets.filter(s=>s.completed).length;
+      meta = formatSetsSummary(rec.sets) + ' ・ ' + filled + '/' + rec.sets.length + 'セット';
+    } else {
+      meta = '動画メニュー';
+    }
+    return `
+      <div class="ex-card ${done?'done':''}" data-ex="${ex.id}">
+        <div class="checkmark">${done?'✓':''}</div>
+        <div class="ex-body">
+          <div class="ex-name">${esc(ex.name)}<span class="ex-tag">${ex.type==='video'?'動画':'重量'}</span></div>
+          <div class="ex-meta">${meta}</div>
+        </div>
+        <div class="chevron">›</div>
+      </div>`;
+  }).join('');
+
+  const finished = allDone(day, session);
+  const dayTabs = state.routine.map((d,i)=>`
+    <div class="day-tab ${i===state.currentDayIdx?'active':''}" data-select-day="${i}">Day${d.id.replace('d','')}<br>${esc(d.name)}</div>
+  `).join('');
+
+  return `
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">${isToday ? '今日のトレーニング' : '記録の編集'}</div>
+        <div class="day-title"><span class="num">Day${day.id.replace('d','')}</span> ${esc(day.name)}</div>
+        ${!isToday ? `<div class="work-date-badge">${workDate}</div>` : ''}
+      </div>
+      <div style="display:flex; gap:4px;">
+        <button class="icon-btn" data-action="calendar" aria-label="カレンダー">📅</button>
+        <button class="icon-btn" data-action="history" aria-label="履歴">☰</button>
+        <button class="icon-btn" data-action="editor" aria-label="編集">⚙</button>
+      </div>
+    </header>
+    <main>
+      ${!isToday ? '<button class="btn-today-link" data-action="go-today">← 今日に戻る</button>' : ''}
+      <div class="day-tabs" style="margin-bottom:18px;">${dayTabs}</div>
+      ${cards || '<div class="empty-state"><div class="big">🏋️</div>この日の種目がありません<br>編集から追加してください</div>'}
+    </main>
+    <div class="finish-bar">
+      ${!finished ? '<div style="text-align:center; font-size:12px; color:var(--muted); margin-bottom:8px;">未完了の種目がありますが終了できます</div>' : ''}
+      <button class="btn btn-primary" data-action="finish-day">${isToday ? 'トレーニング終了 → 次回 Day'+nextDayNum(day) : '記録を保存'}</button>
+    </div>
+  `;
+}
+
+function nextDayNum(day){
+  const idx = state.routine.findIndex(d=>d.id===day.id);
+  const nextIdx = (idx+1) % state.routine.length;
+  return state.routine[nextIdx].id.replace('d','');
+}
+
+function renderDetail(day, exId){
+  const ex = day.exercises.find(e=>e.id===exId);
+  const session = getSession(day);
+  const rec = session.exercises[exId];
+
+  if(ex.type === 'video'){
+    const embed = youtubeEmbedUrl(ex.url);
+    return `
+      <header class="topbar">
+        <button class="icon-btn" data-action="back">‹ 戻る</button>
+        <div></div>
+      </header>
+      <main>
+        <div class="day-title" style="font-size:20px; margin-bottom:16px;">${esc(ex.name)}</div>
+        ${embed ? `<div class="yt-frame"><iframe src="${embed}" allowfullscreen></iframe></div>` : ''}
+        ${ex.url ? `<a class="yt-link" href="${esc(ex.url)}" target="_blank" rel="noopener">${esc(ex.url)}</a>` : '<div class="prev-empty">URL未設定（編集画面から追加できます）</div>'}
+        ${ex.note ? `<div class="section-label">メモ</div><div style="color:var(--muted); font-size:14px; line-height:1.6;">${esc(ex.note)}</div>` : ''}
+        <div class="section-label">完了</div>
+        <div class="set-row ${rec.completed?'checked':''}" data-toggle-video="1">
+          <div class="set-box">✓</div>
+          <div class="set-label">このメニューを完了する</div>
+        </div>
+      </main>
+    `;
+  }
+
+  const last = getLastRecord(exId, getWorkDate());
+  const setRows = rec.sets.map((set, i)=>`
+    <div class="set-row ${set.completed?'checked':''}">
+      <div class="set-box" data-set-toggle="${i}">✓</div>
+      <div class="set-label">Set${i+1}</div>
+      <div class="set-inputs">
+        <input type="number" inputmode="decimal" placeholder="kg" data-set-idx="${i}" data-set-field="weight" value="${esc(set.weight)}">
+        <input type="number" inputmode="numeric" placeholder="回" data-set-idx="${i}" data-set-field="reps" value="${esc(set.reps)}">
+      </div>
+    </div>
+  `).join('');
+
+  const prevRecordHtml = last && last.sets && last.sets.length ? `
+    <div class="prev-sets">
+      ${last.sets.map((s,i)=>`
+        <div class="prev-set-row">
+          <span class="lbl">Set${i+1}</span>
+          <span>${esc(s.weight||'-')}kg × ${esc(s.reps||'-')}回</span>
+        </div>
+      `).join('')}
+    </div>
+  ` : `<div class="prev-empty">記録なし（初回）</div>`;
+
+  const canAddSet = rec.sets.length < 10;
+
+  return `
+    <header class="topbar">
+      <button class="icon-btn" data-action="back">‹ 戻る</button>
+      <div></div>
+    </header>
+    <main>
+      <div class="day-title" style="font-size:20px; margin-bottom:4px;">${esc(ex.name)}</div>
+
+      <div class="section-label">前回記録</div>
+      ${prevRecordHtml}
+
+      <div class="section-label">セットごとに入力</div>
+      <div class="sets-list">${setRows || '<div class="prev-empty">セットを追加してください</div>'}</div>
+      <button class="btn-add-set" data-action="add-set" ${canAddSet ? '' : 'disabled'}>＋ セットを追加</button>
+
+      <div class="timer-box">
+        <div class="timer-display" data-timer-display>${formatTimer(state.timer.remaining)}</div>
+        <button class="btn btn-secondary" data-action="toggle-timer">${state.timer.running ? 'タイマー停止' : 'インターバルタイマー開始（60秒）'}</button>
+      </div>
+    </main>
+  `;
+}
+
+function formatTimer(sec){
+  const m = Math.floor(sec/60);
+  const s = sec%60;
+  return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+function renderHistory(){
+  const items = [...state.history].reverse().map(h=>{
+    const exRows = Object.keys(h.exercises).map(exId=>{
+      const rec = h.exercises[exId];
+      const name = rec.name || exId;
+      let v = '';
+      if(rec.sets){
+        v = formatSetsSummary(rec.sets) + ` (${rec.sets.length}set)`;
+      } else {
+        v = '完了';
+      }
+      return `<div class="hist-ex"><span>${esc(name)}</span><span class="v">${esc(v)}</span></div>`;
+    }).join('');
+    return `
+      <div class="hist-item">
+        <div class="hist-date">${h.date}</div>
+        <div class="hist-day">Day${h.dayId.replace('d','')} ${esc(h.dayName)}</div>
+        ${exRows}
+      </div>`;
+  }).join('');
+
+  return `
+    <header class="topbar">
+      <button class="icon-btn" data-action="back">‹ 戻る</button>
+      <div class="day-title" style="font-size:18px;">履歴</div>
+      <div style="width:32px;"></div>
+    </header>
+    <main>
+      ${items || '<div class="empty-state"><div class="big">📋</div>まだ履歴がありません</div>'}
+    </main>
+  `;
+}
+
+function renderEditor(){
+  const tabs = state.routine.map((d,i)=>`<div class="day-tab ${i===state.screen.editIdx?'active':''}" data-edit-day="${i}">Day${d.id.replace('d','')}<br>${esc(d.name)}</div>`).join('');
+  const day = state.routine[state.screen.editIdx];
+
+  const rows = day.exercises.map((ex,i)=>`
+    <div class="edit-row">
+      <input type="text" placeholder="種目名" value="${esc(ex.name)}" data-edit-name="${i}">
+      <select data-edit-type="${i}">
+        <option value="weight" ${ex.type==='weight'?'selected':''}>重量種目</option>
+        <option value="video" ${ex.type==='video'?'selected':''}>動画メニュー</option>
+      </select>
+      ${ex.type==='video' ? `
+        <input type="text" placeholder="YouTube URL" value="${esc(ex.url||'')}" data-edit-url="${i}">
+        <input type="text" placeholder="メモ" value="${esc(ex.note||'')}" data-edit-note="${i}">
+      ` : ''}
+      <div class="row-actions"><button class="small-danger" data-edit-remove="${i}">削除</button></div>
+    </div>
+  `).join('');
+
+  return `
+    <header class="topbar">
+      <button class="icon-btn" data-action="back">‹ 戻る</button>
+      <div class="day-title" style="font-size:18px;">ルーティン編集</div>
+      <div style="width:32px;"></div>
+    </header>
+    <main>
+      <div class="day-tabs">${tabs}</div>
+      <div class="section-label">Day名</div>
+      <input type="text" value="${esc(day.name)}" data-edit-dayname style="width:100%; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; color:var(--text); font-size:16px; margin-bottom:16px;">
+      <div class="section-label">種目</div>
+      ${rows}
+      <button class="btn btn-secondary" data-action="add-exercise" style="margin-top:6px;">＋ 種目を追加</button>
+    </main>
+  `;
+}
+
+const CAL_COLORS = ['#FFB020', '#35D48A', '#4FA8FF', '#C78BFF', '#FF8B6B', '#5FE0C8'];
+function dayColor(dayId){
+  const idx = state.routine.findIndex(d=>d.id===dayId);
+  return CAL_COLORS[idx % CAL_COLORS.length] || '#8A8F98';
+}
+
+function renderCalendar(){
+  const { year, month } = state.screen; // month: 0-11
+  const first = new Date(year, month, 1);
+  const startWeekday = first.getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const todayS = todayStr();
+
+  // map date -> array of history entries for that date
+  const byDate = {};
+  state.history.forEach(h=>{
+    if(!byDate[h.date]) byDate[h.date] = [];
+    byDate[h.date].push(h);
+  });
+
+  const cells = [];
+  for(let i=0;i<startWeekday;i++) cells.push('<div class="cal-cell empty"></div>');
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const entries = byDate[dateStr];
+    const isToday = dateStr === todayS;
+    const isSelected = state.screen.selectedDate === dateStr;
+    if(entries && entries.length){
+      const color = dayColor(entries[0].dayId);
+      const tag = entries.map(e=>'Day'+e.dayId.replace('d','')).join('/');
+      cells.push(`<div class="cal-cell trained ${isToday?'today':''} ${isSelected?'selected':''}" style="background:${color};" data-cal-date="${dateStr}">
+        <div>${d}</div><div class="cal-tag">${esc(tag)}</div>
+      </div>`);
+    } else {
+      cells.push(`<div class="cal-cell ${isToday?'today':''} ${isSelected?'selected':''}" data-cal-date="${dateStr}">${d}</div>`);
+    }
+  }
+
+  const legend = state.routine.map(d=>`<span><span class="dot" style="background:${dayColor(d.id)}"></span><span class="lbl">Day${d.id.replace('d','')} ${esc(d.name)}</span></span>`).join('');
+
+  let detail = '';
+  if(state.screen.selectedDate){
+    const selDate = state.screen.selectedDate;
+    const entries = byDate[selDate] || [];
+    const editButtons = entries.length
+      ? entries.map(h=>`<button class="btn btn-primary" data-action="edit-date" data-edit-day-id="${h.dayId}" style="margin-top:10px;">Day${h.dayId.replace('d','')} ${esc(h.dayName)} を編集</button>`).join('')
+      : `<button class="btn btn-primary" data-action="edit-date" style="margin-top:14px;">この日の記録を入力</button>`;
+    detail = `<div class="cal-detail">
+      <div class="section-label">${selDate}</div>
+      ${entries.length ? entries.map(h=>`
+        <div class="hist-item">
+          <div class="hist-day">Day${h.dayId.replace('d','')} ${esc(h.dayName)}</div>
+          ${Object.keys(h.exercises).map(exId=>{
+            const rec = h.exercises[exId];
+            const name = rec.name || exId;
+            const v = rec.sets ? formatSetsSummary(rec.sets) + ` (${rec.sets.length}set)` : '完了';
+            return `<div class="hist-ex"><span>${esc(name)}</span><span class="v">${esc(v)}</span></div>`;
+          }).join('')}
+        </div>
+      `).join('') : '<div class="prev-empty">この日の記録はまだありません</div>'}
+      <div class="modal-actions">${editButtons}</div>
+    </div>`;
+  }
+
+  return `
+    <header class="topbar">
+      <button class="icon-btn" data-action="back">‹ 戻る</button>
+      <div class="day-title" style="font-size:18px;">カレンダー</div>
+      <div style="width:32px;"></div>
+    </header>
+    <main>
+      <div class="cal-nav">
+        <button data-cal-nav="-1">‹</button>
+        <div class="cal-month">${year}年${month+1}月</div>
+        <button data-cal-nav="1">›</button>
+      </div>
+      <div class="cal-weekdays"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
+      <div class="cal-grid">${cells.join('')}</div>
+      <div class="cal-legend">${legend}</div>
+      ${detail}
+    </main>
+  `;
+}
+
+function attachHandlers(day){
+  const app = document.getElementById('app');
+
+  app.querySelectorAll('[data-action="back"]').forEach(el=>el.onclick = ()=>{ stopTimer(); state.screen = {name:'home'}; render(); });
+  const historyBtn = app.querySelector('[data-action="history"]');
+  if(historyBtn) historyBtn.onclick = ()=>{ state.screen = {name:'history'}; render(); };
+  const editorBtn = app.querySelector('[data-action="editor"]');
+  if(editorBtn) editorBtn.onclick = ()=>{ state.screen = {name:'editor', editIdx: state.currentDayIdx}; render(); };
+  const calBtn = app.querySelector('[data-action="calendar"]');
+  if(calBtn) calBtn.onclick = ()=>{
+    const now = new Date();
+    state.screen = {name:'calendar', year: now.getFullYear(), month: now.getMonth(), selectedDate: null};
+    render();
+  };
+
+  app.querySelectorAll('[data-cal-nav]').forEach(el=>{
+    el.onclick = ()=>{
+      const delta = parseInt(el.getAttribute('data-cal-nav'));
+      let { year, month } = state.screen;
+      month += delta;
+      if(month < 0){ month = 11; year--; }
+      if(month > 11){ month = 0; year++; }
+      state.screen.year = year; state.screen.month = month; state.screen.selectedDate = null;
+      render();
+    };
+  });
+  app.querySelectorAll('[data-cal-date]').forEach(el=>{
+    el.onclick = ()=>{
+      const date = el.getAttribute('data-cal-date');
+      state.screen.selectedDate = (state.screen.selectedDate === date) ? null : date;
+      render();
+    };
+  });
+
+  app.querySelectorAll('[data-action="edit-date"]').forEach(el=>{
+    el.onclick = ()=>{
+      state.workDate = state.screen.selectedDate;
+      const dayId = el.getAttribute('data-edit-day-id');
+      if(dayId){
+        const dayIdx = state.routine.findIndex(d => d.id === dayId);
+        if(dayIdx >= 0) state.currentDayIdx = dayIdx;
+      }
+      stopTimer();
+      state.screen = { name: 'home' };
+      render();
+    };
+  });
+
+  const goTodayBtn = app.querySelector('[data-action="go-today"]');
+  if(goTodayBtn) goTodayBtn.onclick = async ()=>{
+    state.workDate = null;
+    await persist();
+    render();
+  };
+
+  app.querySelectorAll('[data-select-day]').forEach(el=>{
+    el.onclick = async ()=>{
+      state.currentDayIdx = parseInt(el.getAttribute('data-select-day'));
+      await persist();
+      render();
+    };
+  });
+
+  app.querySelectorAll('[data-ex]').forEach(el=>{
+    el.onclick = ()=>{ state.screen = {name:'detail', exId: el.getAttribute('data-ex')}; render(); };
+  });
+
+  const finishBtn = app.querySelector('[data-action="finish-day"]');
+  if(finishBtn) finishBtn.onclick = async ()=>{
+    await finishDay(day);
+  };
+
+  // detail screen inputs
+  const addSetBtn = app.querySelector('[data-action="add-set"]');
+  if(addSetBtn) addSetBtn.onclick = async ()=>{
+    const exId = state.screen.exId;
+    const rec = getSession(day).exercises[exId];
+    if(rec.sets.length >= 10) return;
+    const prev = rec.sets[rec.sets.length - 1];
+    rec.sets.push(createEmptySet(prev?.weight || '', prev?.reps || ''));
+    await persist();
+    render();
+  };
+
+  app.querySelectorAll('[data-set-field]').forEach(el=>{
+    el.oninput = async ()=>{
+      const exId = state.screen.exId;
+      const rec = getSession(day).exercises[exId];
+      const idx = parseInt(el.getAttribute('data-set-idx'));
+      const field = el.getAttribute('data-set-field');
+      rec.sets[idx][field] = el.value;
+      await persist();
+    };
+  });
+
+  app.querySelectorAll('[data-set-toggle]').forEach(el=>{
+    el.onclick = async ()=>{
+      const exId = state.screen.exId;
+      const rec = getSession(day).exercises[exId];
+      const idx = parseInt(el.getAttribute('data-set-toggle'));
+      rec.sets[idx].completed = !rec.sets[idx].completed;
+      await persist();
+      render();
+    };
+  });
+
+  const videoToggle = app.querySelector('[data-toggle-video]');
+  if(videoToggle) videoToggle.onclick = async ()=>{
+    const exId = state.screen.exId;
+    const rec = getSession(day).exercises[exId];
+    rec.completed = !rec.completed;
+    await persist();
+    render();
+  };
+
+  const timerBtn = app.querySelector('[data-action="toggle-timer"]');
+  if(timerBtn) timerBtn.onclick = ()=> toggleTimer();
+
+  // history back already handled; editor handlers:
+  app.querySelectorAll('[data-edit-day]').forEach(el=>{
+    el.onclick = ()=>{ state.screen.editIdx = parseInt(el.getAttribute('data-edit-day')); render(); };
+  });
+  const dayNameInput = app.querySelector('[data-edit-dayname]');
+  if(dayNameInput) dayNameInput.oninput = async ()=>{
+    state.routine[state.screen.editIdx].name = dayNameInput.value;
+    await persist();
+  };
+  app.querySelectorAll('[data-edit-name]').forEach(el=>{
+    el.oninput = async ()=>{
+      const i = parseInt(el.getAttribute('data-edit-name'));
+      state.routine[state.screen.editIdx].exercises[i].name = el.value;
+      await persist();
+    };
+  });
+  app.querySelectorAll('[data-edit-type]').forEach(el=>{
+    el.onchange = async ()=>{
+      const i = parseInt(el.getAttribute('data-edit-type'));
+      state.routine[state.screen.editIdx].exercises[i].type = el.value;
+      await persist();
+      render();
+    };
+  });
+  app.querySelectorAll('[data-edit-url]').forEach(el=>{
+    el.oninput = async ()=>{
+      const i = parseInt(el.getAttribute('data-edit-url'));
+      state.routine[state.screen.editIdx].exercises[i].url = el.value;
+      await persist();
+    };
+  });
+  app.querySelectorAll('[data-edit-note]').forEach(el=>{
+    el.oninput = async ()=>{
+      const i = parseInt(el.getAttribute('data-edit-note'));
+      state.routine[state.screen.editIdx].exercises[i].note = el.value;
+      await persist();
+    };
+  });
+  app.querySelectorAll('[data-edit-remove]').forEach(el=>{
+    el.onclick = async ()=>{
+      const i = parseInt(el.getAttribute('data-edit-remove'));
+      state.routine[state.screen.editIdx].exercises.splice(i,1);
+      await persist();
+      render();
+    };
+  });
+  const addExBtn = app.querySelector('[data-action="add-exercise"]');
+  if(addExBtn) addExBtn.onclick = async ()=>{
+    const d = state.routine[state.screen.editIdx];
+    const newId = 'ex_' + Date.now();
+    d.exercises.push({ id:newId, type:'weight', name:'新しい種目' });
+    await persist();
+    render();
+  };
+}
+
+async function finishDay(day){
+  const dateStr = getWorkDate();
+  const session = getSession(day);
+  const exercisesRecord = {};
+  day.exercises.forEach(ex=>{
+    const rec = session.exercises[ex.id];
+    exercisesRecord[ex.id] = { name: ex.name, ...rec };
+  });
+  const entry = { date: dateStr, dayId: day.id, dayName: day.name, exercises: exercisesRecord };
+  const idx = state.history.findIndex(h => h.date === dateStr && h.dayId === day.id);
+  if(idx >= 0) state.history[idx] = entry;
+  else state.history.push(entry);
+  delete state.sessions[sessionKey(dateStr, day.id)];
+  if(dateStr === todayStr()){
+    state.currentDayIdx = (state.currentDayIdx + 1) % state.routine.length;
+  }
+  if(state.workDate) state.workDate = null;
+  stopTimer();
+  await persist();
+  state.screen = { name:'home' };
+  render();
+}
+
+function stopTimer(){
+  if(state.timer.handle) clearInterval(state.timer.handle);
+  state.timer = { running:false, remaining:60, handle:null };
+}
+
+function toggleTimer(){
+  if(state.timer.running){
+    stopTimer();
+    updateTimerDisplay();
+    return;
+  }
+  state.timer.running = true;
+  if(state.timer.remaining <= 0) state.timer.remaining = 60;
+  state.timer.handle = setInterval(()=>{
+    state.timer.remaining--;
+    if(state.timer.remaining <= 0){
+      stopTimer();
+      if(navigator.vibrate) navigator.vibrate([200,100,200]);
+    }
+    updateTimerDisplay();
+  }, 1000);
+  render();
+}
+
+function updateTimerDisplay(){
+  const disp = document.querySelector('[data-timer-display]');
+  if(disp) disp.textContent = formatTimer(Math.max(0,state.timer.remaining));
+  const btn = document.querySelector('[data-action="toggle-timer"]');
+  if(btn) btn.textContent = state.timer.running ? 'タイマー停止' : 'インターバルタイマー開始（60秒）';
+}
+
+async function persist(){
+  await storageSet(STORAGE_KEYS.routine, state.routine);
+  await storageSet(STORAGE_KEYS.currentDay, state.currentDayIdx);
+  await storageSet(STORAGE_KEYS.history, state.history);
+  await storageSet(STORAGE_KEYS.sessions, state.sessions);
+}
+
+async function init(){
+  document.getElementById('app').innerHTML = '<div class="empty-state">読み込み中…</div>';
+  const [routine, currentDay, history, sessions] = await Promise.all([
+    storageGet(STORAGE_KEYS.routine),
+    storageGet(STORAGE_KEYS.currentDay),
+    storageGet(STORAGE_KEYS.history),
+    storageGet(STORAGE_KEYS.sessions)
+  ]);
+  state.routine = routine || DEFAULT_ROUTINE;
+  state.currentDayIdx = (typeof currentDay === 'number') ? currentDay : 0;
+  state.history = history || [];
+  state.sessions = sessions || {};
+  const migrated = migrateAllData();
+  const sessionsMigrated = migrateSessions();
+  if(!routine || migrated || sessionsMigrated) await persist();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
