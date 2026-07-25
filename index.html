@@ -143,6 +143,12 @@
     background:none; color:var(--muted); font-size:14px; font-weight:700;
     cursor:pointer; font-family:inherit;
   }
+  .btn-collapse-card{
+    width:100%; padding:12px; margin-top:12px;
+    border-radius:12px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--text);
+    font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
 
   .empty-state{text-align:center; padding:48px 20px; color:var(--muted); line-height:1.7;}
   .empty-state .big{font-size:40px; margin-bottom:12px;}
@@ -241,6 +247,8 @@ const DEFAULT_CATALOG = {
 
 const PART_ORDER = ['chest','back','shoulder','legs','biceps','triceps','abs','forearm','cardio'];
 const DEFAULT_SET_COUNT = 3;
+
+let outsideCloseCleanup = null;
 
 let state = {
   catalog: null,
@@ -460,6 +468,53 @@ function toggleExerciseExpand(exId){
   else state.expandedExIds = [exId];
 }
 
+function collapseExercise(exId){
+  state.expandedExIds = state.expandedExIds.filter(id=>id!==exId);
+}
+
+function shouldIgnoreOutsideCollapse(target){
+  if(!target) return true;
+  if(target.closest('[data-toggle-expand]')) return true;
+  if(target.closest('.finish-bar, header.topbar, [data-action], .btn-collapse-card')) return true;
+  return false;
+}
+
+function handleSetInputBlur(exId){
+  setTimeout(()=>{
+    if(!isExerciseExpanded(exId)) return;
+    const card = document.querySelector(`[data-card="${exId}"]`);
+    const active = document.activeElement;
+    if(card && card.contains(active)) return;
+    collapseExercise(exId);
+    render();
+  }, 150);
+}
+
+function setupExpandOutsideClose(){
+  if(outsideCloseCleanup){
+    outsideCloseCleanup();
+    outsideCloseCleanup = null;
+  }
+  if(state.screen.name !== 'home' || !state.expandedExIds.length) return;
+
+  const exId = state.expandedExIds[0];
+  const onOutside = (e)=>{
+    if(!isExerciseExpanded(exId)) return;
+    const card = document.querySelector(`[data-card="${exId}"]`);
+    if(!card) return;
+    if(card.contains(e.target)) return;
+    if(shouldIgnoreOutsideCollapse(e.target)) return;
+    collapseExercise(exId);
+    render();
+  };
+  document.addEventListener('touchstart', onOutside, true);
+  document.addEventListener('mousedown', onOutside, true);
+  outsideCloseCleanup = ()=>{
+    document.removeEventListener('touchstart', onOutside, true);
+    document.removeEventListener('mousedown', onOutside, true);
+  };
+}
+
 function renderExerciseSummary(ex){
   const logged = ex.sets.filter(isSetLogged);
   if(!logged.length) return `${ex.sets.length}セット · 未入力`;
@@ -507,6 +562,7 @@ function renderWorkoutCard(ex){
       <div class="workout-card-body">
         ${setLines}
         <button type="button" class="btn-add-set-card" data-add-set="${ex.id}" ${canAdd?'':'disabled'}>＋ セット追加</button>
+        <button type="button" class="btn-collapse-card" data-collapse-ex="${ex.id}">入力完了</button>
       </div>
     </div>`;
 }
@@ -812,11 +868,32 @@ function attachHandlers(){
     };
   });
 
+  app.querySelectorAll('[data-collapse-ex]').forEach(el=>{
+    el.onclick=()=>{
+      collapseExercise(el.getAttribute('data-collapse-ex'));
+      render();
+    };
+  });
+
+  app.querySelectorAll('.workout-card.is-expanded .workout-card-body').forEach(body=>{
+    body.addEventListener('focusout',()=>{
+      const exId = body.closest('[data-card]')?.getAttribute('data-card');
+      if(exId) handleSetInputBlur(exId);
+    });
+  });
+
+  setupExpandOutsideClose();
+
   app.querySelectorAll('[data-toggle-done]').forEach(el=>{
     el.onclick=async()=>{
       const draft=ensureDraft();
-      const ex=draft.exercises.find(e=>e.id===el.getAttribute('data-toggle-done'));
-      if(ex){ ex.done=!ex.done; await persist(); render(); }
+      const exId=el.getAttribute('data-toggle-done');
+      const ex=draft.exercises.find(e=>e.id===exId);
+      if(ex){
+        ex.done=!ex.done;
+        if(ex.done) collapseExercise(exId);
+        await persist(); render();
+      }
     };
   });
 
@@ -849,6 +926,7 @@ function attachHandlers(){
       if(ex) ex.sets[+el.getAttribute('data-set-idx')].weight=el.value;
       await persist();
     };
+    el.onblur=()=>handleSetInputBlur(el.getAttribute('data-ex-id'));
   });
   app.querySelectorAll('[data-set-reps]').forEach(el=>{
     el.oninput=async()=>{
@@ -857,6 +935,7 @@ function attachHandlers(){
       if(ex) ex.sets[+el.getAttribute('data-set-idx')].reps=el.value;
       await persist();
     };
+    el.onblur=()=>handleSetInputBlur(el.getAttribute('data-ex-id'));
   });
 
   app.querySelectorAll('[data-set-copy]').forEach(el=>{
