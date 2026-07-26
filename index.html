@@ -2,12 +2,12 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>今日のメニュー</title>
 <style>
   :root{
     --bg:#0B0D10; --panel:#15181C; --panel-2:#1D2126; --line:#2A2F35;
-    --text:#ECEDEE; --muted:#82898F; --accent:#FFB020; --danger:#FF5A4E;
+    --text:#ECEDEE; --muted:#9AA0A6; --accent:#FFB020; --danger:#FF5A4E;
     --done:#35D48A; --mono:'SF Mono','Menlo','Consolas',monospace;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
@@ -15,25 +15,38 @@
     font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Segoe UI',sans-serif;}
   #app{max-width:480px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column;}
 
-  header.topbar{
-    padding:24px 20px 20px; border-bottom:1px solid var(--line);
-    position:sticky; top:0; background:var(--bg); z-index:5;
-    display:flex; align-items:flex-start; justify-content:space-between;
+  button:focus-visible, input:focus-visible, select:focus-visible{
+    outline:2px solid var(--accent); outline-offset:2px;
   }
-  .page-title{font-size:24px; font-weight:800; letter-spacing:-0.02em;}
-  .page-sub{font-size:12px; color:var(--muted); margin-top:6px;}
-  .icon-btn{background:none; border:none; color:var(--muted); font-size:20px; padding:8px; cursor:pointer;}
 
-  main{flex:1; padding:20px 20px 220px;}
+  header.topbar{
+    padding:20px 16px 16px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:var(--bg); z-index:5;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .page-title{font-size:20px; font-weight:800; letter-spacing:-0.02em;}
+  .page-title.sub{font-size:18px;}
+  .page-sub{font-size:13px; color:var(--muted); margin-top:4px;}
+  .icon-btn{
+    background:none; border:none; color:var(--muted); font-size:20px;
+    min-width:44px; min-height:44px; padding:12px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .icon-btn-labeled{
+    font-size:12px; font-weight:700; gap:2px; flex-direction:column; line-height:1.1;
+  }
+  .icon-btn-labeled .icon-btn-icon{font-size:16px; line-height:1;}
+
+  main{flex:1; padding:16px 16px 200px;}
 
   .btn-add-ex{
-    width:100%; padding:14px; margin-bottom:10px;
+    width:100%; padding:14px; margin-bottom:8px;
     border-radius:14px; border:1px dashed var(--line);
     background:none; color:var(--accent);
     font-size:15px; font-weight:800; cursor:pointer; font-family:inherit;
   }
   .btn-copy-ex{
-    width:100%; padding:14px; margin-bottom:10px;
+    width:100%; padding:14px; margin-bottom:8px;
     border-radius:14px; border:1px solid var(--line);
     background:var(--panel); color:var(--text);
     font-size:15px; font-weight:700; cursor:pointer; font-family:inherit;
@@ -67,7 +80,7 @@
   }
   .add-panel select:focus{outline:none; border-color:var(--accent);}
   .btn{
-    display:block; width:100%; text-align:center; padding:16px; border-radius:14px; border:none;
+    display:block; width:100%; text-align:center; padding:18px 16px; border-radius:14px; border:none;
     font-size:16px; font-weight:800; cursor:pointer; font-family:inherit;
   }
   .btn-primary{background:var(--accent); color:#1a1200;}
@@ -76,13 +89,12 @@
 
   .workout-card{
     background:var(--panel); border:1px solid var(--line); border-radius:16px;
-    margin-bottom:12px; position:relative; overflow:hidden;
-    transition:border-color .2s;
+    margin-bottom:10px; position:relative; overflow:hidden;
   }
-  .workout-card.is-done{border-color:var(--done); background:rgba(53,212,138,.04);}
+  .workout-card.is-done{background:rgba(53,212,138,.03);}
   .workout-card-head{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
-    padding:14px 16px;
+    padding:12px 14px;
   }
   .workout-card.is-expanded .workout-card-head{border-bottom:1px solid var(--line);}
   .workout-card-toggle{
@@ -92,36 +104,43 @@
   }
   .workout-card-main{flex:1; min-width:0;}
   .workout-card-name{font-size:16px; font-weight:800; line-height:1.3;}
-  .workout-card-part{font-size:11px; font-weight:700; margin-top:3px;}
+  .workout-card-part{font-size:12px; font-weight:700; margin-top:3px;}
   .workout-card-summary{
-    font-size:12px; color:var(--muted); margin-top:6px;
+    font-size:13px; color:var(--muted); margin-top:5px;
     font-family:var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .workout-card.is-expanded .workout-card-summary{display:none;}
+  .card-tap-hint{
+    font-size:11px; color:var(--muted); margin-top:4px;
+  }
+  .workout-card.is-expanded .card-tap-hint{display:none;}
   .card-chevron{
     flex-shrink:0; width:24px; color:var(--muted); font-size:18px;
     transition:transform .2s; line-height:1;
   }
   .workout-card.is-expanded .card-chevron{transform:rotate(90deg);}
-  .card-head-actions{display:flex; gap:8px; flex-shrink:0; align-items:center;}
+  .card-head-actions{display:flex; gap:10px; flex-shrink:0; align-items:center;}
   .card-done-toggle{
-    width:34px; height:34px; border-radius:10px; border:2px solid var(--line);
-    background:none; color:transparent; font-size:15px; cursor:pointer;
+    width:44px; height:44px; border-radius:12px; border:2px solid var(--line);
+    background:none; color:transparent; font-size:16px; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
   }
   .workout-card.is-done .card-done-toggle{border-color:var(--done); background:var(--done); color:#0B0D10;}
   .card-delete{
-    width:34px; height:34px; border-radius:10px; border:1px solid var(--line);
-    background:none; color:var(--muted); font-size:17px; cursor:pointer; flex-shrink:0;
+    width:44px; height:44px; border-radius:12px; border:1px solid var(--line);
+    background:none; color:var(--muted); font-size:18px; cursor:pointer; flex-shrink:0;
   }
   .card-delete:active{color:var(--danger); border-color:var(--danger);}
-  .workout-card-body{display:none; padding:16px;}
+  .workout-card-body{display:none; padding:14px;}
   .workout-card.is-expanded .workout-card-body{display:block;}
 
   .set-line{
-    display:flex; align-items:center; gap:10px; margin-bottom:12px;
+    display:flex; align-items:center; gap:8px; margin-bottom:10px;
   }
-  .set-line-label{font-size:13px; color:var(--muted); font-weight:600; width:52px; flex-shrink:0;}
+  .set-line.is-logged{
+    border-left:2px solid var(--done); padding-left:8px; margin-left:-2px;
+  }
+  .set-line-label{font-size:12px; color:var(--muted); font-weight:600; width:48px; flex-shrink:0;}
   .set-line input{
     flex:1; min-width:0; background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
     padding:14px 10px; font-size:18px; color:var(--text); font-family:var(--mono); text-align:center;
@@ -129,11 +148,11 @@
   .set-line input:focus{outline:none; border-color:var(--accent);}
   .set-line input::placeholder{color:var(--muted); font-size:13px;}
   .set-copy{
-    width:36px; height:36px; border-radius:10px; border:1px solid var(--line);
-    background:none; color:var(--accent); font-size:15px; cursor:pointer; flex-shrink:0;
+    width:40px; height:40px; border-radius:10px; border:1px solid var(--line);
+    background:none; color:var(--accent); font-size:14px; cursor:pointer; flex-shrink:0;
   }
   .set-remove-sm{
-    width:36px; height:36px; border-radius:10px; border:none;
+    width:40px; height:40px; border-radius:10px; border:none;
     background:none; color:var(--muted); font-size:18px; cursor:pointer; flex-shrink:0;
   }
 
@@ -155,47 +174,69 @@
 
   .finish-bar{
     position:fixed; bottom:0; left:0; right:0; max-width:480px; margin:0 auto;
-    padding:16px 20px 28px; background:linear-gradient(to top, var(--bg) 70%, transparent);
+    padding:16px 16px 28px; background:linear-gradient(to top, var(--bg) 80%, transparent);
   }
 
-  .hist-item{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px;}
-  .hist-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:8px;}
-  .hist-date{font-family:var(--mono); font-size:12px; color:var(--muted);}
+  .hist-item{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:10px;}
+  .hist-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px;}
+  .hist-date{font-family:var(--mono); font-size:13px; color:var(--muted); font-weight:600;}
   .hist-copy{
-    flex-shrink:0; padding:8px 12px; border-radius:10px;
+    flex-shrink:0; min-height:40px; padding:8px 12px; border-radius:10px;
     border:1px solid var(--line); background:var(--panel-2);
-    color:var(--text); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit;
+    color:var(--text); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;
   }
-  .hist-ex{font-size:13px; padding:4px 0; color:var(--muted);}
+  .hist-ex-row{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    padding:6px 0; border-bottom:1px solid var(--line);
+  }
+  .hist-ex-row:last-child{border-bottom:none; padding-bottom:0;}
+  .hist-ex-name{font-size:15px; font-weight:700; color:var(--text); flex:1; min-width:0;}
+  .hist-ex-stats{font-size:13px; color:var(--muted); text-align:right; flex-shrink:0; max-width:55%; line-height:1.4;}
+
+  .btn-today-workout{
+    width:100%; padding:14px 16px; margin:4px 0 12px;
+    border-radius:14px; border:none;
+    background:var(--accent); color:#1a1200;
+    font-size:16px; font-weight:800; cursor:pointer; font-family:inherit;
+  }
+  .cal-hint{
+    text-align:center; font-size:14px; color:var(--muted);
+    line-height:1.6; margin-bottom:16px;
+  }
 
   .cal-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
-  .cal-nav button{background:var(--panel); border:1px solid var(--line); color:var(--text); width:36px; height:36px; border-radius:10px; cursor:pointer;}
-  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
-  .cal-cell{aspect-ratio:1; border-radius:12px; border:1px solid var(--line); background:var(--panel);
-    display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--muted); cursor:pointer;}
+  .cal-nav button{
+    background:var(--panel); border:1px solid var(--line); color:var(--text);
+    width:44px; height:44px; border-radius:10px; cursor:pointer;
+  }
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:8px;}
+  .cal-cell{
+    aspect-ratio:1; border-radius:12px; border:1px solid var(--line); background:var(--panel);
+    display:flex; align-items:center; justify-content:center;
+    font-size:15px; color:var(--muted); cursor:pointer;
+  }
   .cal-cell.empty{border:none; background:none; cursor:default;}
-  .cal-cell.today{border-color:var(--text);}
-  .cal-cell.trained{background:var(--done); color:#0B0D10; font-weight:800;}
-  .cal-cell.selected{outline:2px solid var(--text); outline-offset:2px;}
-  .cal-weekdays{display:grid; grid-template-columns:repeat(7,1fr); text-align:center; margin-bottom:6px;}
-  .cal-weekdays span{font-size:11px; color:var(--muted); font-weight:700;}
+  .cal-cell.today{
+    border-color:var(--text); font-weight:800; color:var(--text);
+    outline:2px solid var(--text); outline-offset:1px;
+  }
+  .cal-cell.trained{background:var(--done); color:#0B0D10; font-weight:800; outline:none;}
+  .cal-weekdays{display:grid; grid-template-columns:repeat(7,1fr); text-align:center; margin-bottom:8px;}
+  .cal-weekdays span{font-size:12px; color:var(--muted); font-weight:700;}
 
-  .date-badge{display:inline-block; font-size:12px; font-weight:600; color:var(--done);
-    background:rgba(53,212,138,.08); border:1px solid var(--done); border-radius:8px;
-    padding:4px 10px; margin-top:8px; font-family:var(--mono);}
-  .btn-today-link{display:block; text-align:center; margin-bottom:16px; background:none; border:none;
-    color:var(--muted); font-size:13px; cursor:pointer; font-family:inherit; text-decoration:underline;}
+  .save-hint{
+    font-size:12px; color:var(--muted); margin:-12px 0 16px; line-height:1.5;
+  }
 
   .status-bar{
     display:flex; align-items:center; justify-content:space-between;
-    padding:12px 16px; margin-bottom:20px;
+    padding:12px 14px; margin-bottom:16px;
     background:var(--panel); border:1px solid var(--line); border-radius:14px;
   }
   .status-bar .status-label{font-size:13px; font-weight:700;}
   .status-bar .status-label.before{color:var(--accent);}
   .status-bar .status-label.after{color:var(--done);}
   .status-bar .status-count{font-size:12px; color:var(--muted); font-family:var(--mono);}
-  .set-line.is-logged .set-line-label{color:var(--done);}
 
   .export-panel{
     background:var(--panel); border:1px solid var(--line); border-radius:16px;
@@ -217,6 +258,20 @@
     cursor:pointer; font-family:inherit;
   }
   .export-preset:active{border-color:var(--accent); color:var(--accent);}
+
+  .add-type-tabs{display:flex; gap:8px; margin-bottom:16px;}
+  .add-type-tab{
+    flex:1; padding:12px 10px; border-radius:12px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--text); font-size:14px; font-weight:700;
+    cursor:pointer; font-family:inherit;
+  }
+  .add-type-tab.is-active{border-color:var(--accent); color:var(--accent); background:rgba(255,176,32,.08);}
+  .video-embed-wrap{
+    position:relative; padding-bottom:56.25%; height:0; overflow:hidden;
+    border-radius:12px; margin-bottom:12px; background:#000;
+  }
+  .video-embed-wrap iframe{position:absolute; inset:0; width:100%; height:100%; border:0;}
+  .video-note{font-size:13px; color:var(--muted); line-height:1.6;}
 </style>
 </head>
 <body>
@@ -230,8 +285,18 @@ const STORAGE = {
   catalog: 'catalog_v2',
   history: 'history_v2',
   draft: 'draft_v2',
-  workDate: 'work_date_v2'
+  workDate: 'work_date_v2',
+  circuits: 'circuits_v2'
 };
+
+const DEFAULT_YOUTUBE_CIRCUITS = [
+  { id:'yt_dumbbell', name:'YouTubeダンベルサーキット', url:'' },
+  { id:'yt_chest', name:'YouTube胸サーキット', url:'' },
+  { id:'yt_back', name:'YouTube背中サーキット', url:'' },
+  { id:'yt_shoulder', name:'YouTube肩サーキット', url:'' },
+  { id:'yt_legs', name:'YouTube脚サーキット', url:'' },
+  { id:'yt_full', name:'YouTube全身サーキット', url:'' }
+];
 
 const DEFAULT_CATALOG = {
   chest:    { name:'胸',   color:'#FF6B6B', exercises:['ベンチプレス','インクラインベンチプレス','デクラインベンチプレス','ダンベルベンチプレス','インクラインダンベルプレス','ダンベルフライ','インクラインダンベルフライ','ケーブルクロスオーバー','ペックフライ','チェストプレス','プッシュアップ（腕立て伏せ）','ディップス'] },
@@ -252,12 +317,12 @@ let outsideCloseCleanup = null;
 
 let state = {
   catalog: null,
-  history: [],       // [{ date, exercises }]
-  draft: null,       // { date, exercises } 編集中
-  workDate: null,    // null = 今日
-  screen: { name: 'home' },
+  circuits: [],
+  history: [],
+  draft: null,
+  workDate: null,
+  screen: { name: 'calendar' },
   expandedExIds: [],
-  // 将来拡張用（今回未使用）
   meta: { recentIds: [], favoriteIds: [], templates: [] }
 };
 
@@ -277,6 +342,27 @@ function createDefaultSets(n=DEFAULT_SET_COUNT){ return Array.from({length:n},()
 
 function getPart(partId){ return state.catalog[partId]; }
 function getPartList(){ return PART_ORDER.map(id=>({ id, ...state.catalog[id] })); }
+function getCircuit(id){ return state.circuits.find(c=>c.id===id); }
+
+function youtubeEmbedUrl(url){
+  if(!url) return '';
+  const m = String(url).match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([^&?/]+)/);
+  return m ? `https://www.youtube.com/embed/${m[1]}` : url;
+}
+
+function openCalendarScreen(){
+  const n=new Date();
+  state.screen={name:'calendar',year:n.getFullYear(),month:n.getMonth()};
+}
+
+async function openEditDate(date){
+  state.workDate=isToday(date)?null:date;
+  state.draft=null;
+  state.expandedExIds=[];
+  await save(STORAGE.workDate,state.workDate);
+  state.screen={name:'home'};
+  render();
+}
 
 function ensureDraft(){
   const date = getWorkDate();
@@ -304,8 +390,10 @@ function normalizeExercises(list){
   return list.map(ex=>({
     name: ex.name,
     partId: ex.partId,
+    type: ex.type || 'weight',
+    videoUrl: ex.videoUrl || '',
     done: !!ex.done,
-    sets: ex.sets.map(s=>({ weight: s.weight||'', reps: s.reps||'' }))
+    sets: (ex.sets || []).map(s=>({ weight: s.weight||'', reps: s.reps||'' }))
   }));
 }
 
@@ -316,16 +404,19 @@ function getWorkoutStatus(draft){
   return isWorkoutSaved(draft) ? 'after' : 'before';
 }
 
-function addExerciseToDraft(partId, exerciseName){
+function addExerciseToDraft({ partId, name, type='weight', videoUrl='' }){
   const draft = ensureDraft();
   const id = 'we_'+Date.now();
-  draft.exercises.push({
+  const ex = {
     id,
     partId,
-    name: exerciseName,
+    name,
+    type,
     done: false,
-    sets: createDefaultSets()
-  });
+    videoUrl: type === 'video' ? videoUrl : '',
+    sets: type === 'video' ? [] : createDefaultSets()
+  };
+  draft.exercises.push(ex);
   return id;
 }
 
@@ -340,31 +431,39 @@ function cloneExercisesForCopy(exercises){
     id: 'we_'+(base+i),
     partId: ex.partId,
     name: ex.name,
+    type: ex.type || 'weight',
+    videoUrl: ex.videoUrl || '',
     done: false,
-    sets: ex.sets.map(s=>({ weight: s.weight||'', reps: s.reps||'' }))
+    sets: (ex.sets || []).map(s=>({ weight: s.weight||'', reps: s.reps||'' }))
   }));
 }
 
-function getCopySourceDays(){
-  const targetDate = getWorkDate();
-  return [...state.history]
-    .filter(h=>h.date!==targetDate && h.exercises.length)
-    .sort((a,b)=>b.date.localeCompare(a.date));
-}
+async function copyDayToToday(sourceDate){
+  const today = todayStr();
+  if(sourceDate === today) return false;
 
-function copyWorkoutFromDate(sourceDate, { replace = true } = {}){
-  const targetDate = getWorkDate();
-  if(sourceDate === targetDate) return false;
-  const source = state.history.find(h=>h.date===sourceDate);
-  if(!source || !source.exercises.length) return false;
-
-  const draft = ensureDraft();
-  const copied = cloneExercisesForCopy(source.exercises);
-  if(replace){
-    draft.exercises = copied;
+  let sourceExercises = [];
+  if(getWorkDate() === sourceDate){
+    sourceExercises = ensureDraft().exercises;
   } else {
-    draft.exercises.push(...copied);
+    sourceExercises = state.history.find(h=>h.date===sourceDate)?.exercises || [];
   }
+  if(!sourceExercises.length) return false;
+
+  const todayHist = state.history.find(h=>h.date===today);
+  const todayDraft = state.draft?.date === today ? state.draft : null;
+  const hasToday = !!(todayHist?.exercises?.length || todayDraft?.exercises?.length);
+  if(hasToday){
+    const ok = confirm(`${formatDateLabel(sourceDate)} のメニューを今日にコピーしますか？\n今日の種目は置き換わります。`);
+    if(!ok) return false;
+  }
+
+  state.workDate = null;
+  state.draft = { date: today, exercises: cloneExercisesForCopy(sourceExercises) };
+  state.expandedExIds = [];
+  await persist();
+  state.screen = { name: 'home' };
+  render();
   return true;
 }
 
@@ -372,6 +471,12 @@ function formatDateLabel(d){
   if(isToday(d)) return '今日';
   const [y,m,day]=d.split('-').map(Number);
   return `${y}年${m}月${day}日`;
+}
+
+function formatDateWithWeekday(d){
+  const [y,m,day]=d.split('-').map(Number);
+  const wd=['日','月','火','水','木','金','土'][new Date(y,m-1,day).getDay()];
+  return `${y}年${m}月${day}日（${wd}）`;
 }
 
 function getHistoryDateBounds(){
@@ -400,7 +505,8 @@ function buildExportRows(startDate, endDate){
     .sort((a,b)=>a.date.localeCompare(b.date) || 0)
     .forEach(h=>{
       h.exercises.forEach(ex=>{
-        ex.sets.forEach(set=>{
+        if(ex.type === 'video') return;
+        (ex.sets || []).forEach(set=>{
           if(!isSetLogged(set)) return;
           rows.push({
             date: h.date,
@@ -456,6 +562,7 @@ function render(){
   else if(state.screen.name==='history') app.innerHTML = renderHistory();
   else if(state.screen.name==='calendar') app.innerHTML = renderCalendar();
   else if(state.screen.name==='export') app.innerHTML = renderExport();
+  else if(state.screen.name==='addExercise') app.innerHTML = renderAddExercise();
   attachHandlers();
 }
 
@@ -516,7 +623,8 @@ function setupExpandOutsideClose(){
 }
 
 function renderExerciseSummary(ex){
-  const logged = ex.sets.filter(isSetLogged);
+  if(ex.type === 'video') return ex.done ? '動画視聴完了' : 'YouTubeサーキット';
+  const logged = (ex.sets || []).filter(isSetLogged);
   if(!logged.length) return `${ex.sets.length}セット · 未入力`;
   const preview = logged.slice(0,2).map(s=>`${s.weight||'-'}kg×${s.reps||'-'}`).join(', ');
   const rest = logged.length > 2 ? ` 他${logged.length-2}セット` : '';
@@ -527,42 +635,63 @@ function renderExerciseSummary(ex){
 
 function renderSetLine(exId, set, i){
   const logged = isSetLogged(set);
+  const n = i + 1;
   return `
     <div class="set-line ${logged?'is-logged':''}">
-      <span class="set-line-label">セット${i+1}</span>
-      <input type="number" inputmode="decimal" placeholder="kg" data-set-weight data-ex-id="${exId}" data-set-idx="${i}" value="${esc(set.weight)}">
-      <input type="number" inputmode="numeric" placeholder="回" data-set-reps data-ex-id="${exId}" data-set-idx="${i}" value="${esc(set.reps)}">
-      ${i>0 ? `<button type="button" class="set-copy" data-set-copy data-ex-id="${exId}" data-set-idx="${i}" title="前セットをコピー">↳</button>` : '<span style="width:36px"></span>'}
-      <button type="button" class="set-remove-sm" data-set-remove data-ex-id="${exId}" data-set-idx="${i}">−</button>
+      <span class="set-line-label">セット${n}</span>
+      <input type="number" inputmode="decimal" placeholder="kg" aria-label="セット${n} 重量"
+        data-set-weight data-ex-id="${exId}" data-set-idx="${i}" value="${esc(set.weight)}">
+      <input type="number" inputmode="numeric" placeholder="回" aria-label="セット${n} 回数"
+        data-set-reps data-ex-id="${exId}" data-set-idx="${i}" value="${esc(set.reps)}">
+      ${i>0 ? `<button type="button" class="set-copy" data-set-copy data-ex-id="${exId}" data-set-idx="${i}" aria-label="前セットをコピー" title="前セットをコピー">↳</button>` : '<span style="width:40px;flex-shrink:0"></span>'}
+      <button type="button" class="set-remove-sm" data-set-remove data-ex-id="${exId}" data-set-idx="${i}" aria-label="セット${n}を削除">−</button>
     </div>`;
 }
 
 function renderWorkoutCard(ex){
   const part = getPart(ex.partId);
-  const setLines = ex.sets.map((s,i)=>renderSetLine(ex.id,s,i)).join('');
-  const canAdd = ex.sets.length < 10;
   const done = !!ex.done;
   const expanded = isExerciseExpanded(ex.id);
+  const isVideo = ex.type === 'video';
+
+  let bodyContent = '';
+  if(isVideo){
+    const embed = youtubeEmbedUrl(ex.videoUrl);
+    bodyContent = embed
+      ? `<div class="video-embed-wrap"><iframe src="${esc(embed)}" allowfullscreen loading="lazy"></iframe></div>`
+      : `<div class="video-note">YouTube URLが未設定です。<br>種目を追加し直すか、URL付きサーキットを選んでください。</div>`;
+  } else {
+    const setLines = (ex.sets || []).map((s,i)=>renderSetLine(ex.id,s,i)).join('');
+    const canAdd = (ex.sets || []).length < 10;
+    bodyContent = `
+      ${setLines}
+      <button type="button" class="btn-add-set-card" data-add-set="${ex.id}" ${canAdd?'':'disabled'}>＋ セット追加</button>
+      <button type="button" class="btn-collapse-card" data-collapse-ex="${ex.id}">閉じる</button>`;
+  }
+
+  const partLabel = isVideo ? 'YouTube' : (part?.name || '');
+  const partColor = isVideo ? '#FF4444' : (part?.color || 'var(--muted)');
+
   return `
     <div class="workout-card ${done?'is-done':''} ${expanded?'is-expanded':''}" data-card="${ex.id}">
       <div class="workout-card-head">
-        <button type="button" class="workout-card-toggle" data-toggle-expand="${ex.id}" aria-expanded="${expanded}">
+        <button type="button" class="workout-card-toggle" data-toggle-expand="${ex.id}" aria-expanded="${expanded}" aria-label="${esc(ex.name)}を${expanded?'閉じる':'開く'}">
           <div class="workout-card-main">
             <div class="workout-card-name">${esc(ex.name)}</div>
-            <div class="workout-card-part" style="color:${part?.color||'var(--muted)'}">${esc(part?.name||'')} · ${done?'完了':'未完了'}</div>
+            <div class="workout-card-part" style="color:${partColor}">${esc(partLabel)}</div>
             <div class="workout-card-summary">${esc(renderExerciseSummary(ex))}</div>
+            ${!expanded ? '<div class="card-tap-hint">タップで入力 ›</div>' : ''}
           </div>
-          <span class="card-chevron">›</span>
+          <span class="card-chevron" aria-hidden="true">›</span>
         </button>
         <div class="card-head-actions">
-          <button type="button" class="card-done-toggle" data-toggle-done="${ex.id}" aria-label="完了">${done?'✓':''}</button>
-          <button type="button" class="card-delete" data-delete-ex="${ex.id}" aria-label="削除">×</button>
+          <button type="button" class="card-done-toggle" data-toggle-done="${ex.id}" aria-label="${done?'完了を取り消す':'種目を完了にする'}">${done?'✓':''}</button>
+          <button type="button" class="card-delete" data-delete-ex="${ex.id}" aria-label="種目を削除">×</button>
         </div>
       </div>
       <div class="workout-card-body">
-        ${setLines}
-        <button type="button" class="btn-add-set-card" data-add-set="${ex.id}" ${canAdd?'':'disabled'}>＋ セット追加</button>
-        <button type="button" class="btn-collapse-card" data-collapse-ex="${ex.id}">入力完了</button>
+        ${bodyContent}
+        ${isVideo ? `<button type="button" class="btn-collapse-card" data-collapse-ex="${ex.id}">閉じる</button>` : ''}
       </div>
     </div>`;
 }
@@ -586,108 +715,106 @@ function renderStatusBar(draft){
     </div>`;
 }
 
-function renderCopyPanel(){
-  const sources = getCopySourceDays();
-  const targetDate = getWorkDate();
-  if(!sources.length){
-    return `
-      <div class="copy-panel">
-        <div class="copy-panel-title">${esc(formatDateLabel(targetDate))} にコピー</div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.6;">コピーできる記録がありません</div>
-        <button class="btn btn-ghost" data-action="cancel-copy">閉じる</button>
-      </div>`;
-  }
-  const items = sources.map(h=>{
-    const names = h.exercises.slice(0,3).map(ex=>ex.name).join('、');
-    const more = h.exercises.length > 3 ? ` 他${h.exercises.length-3}件` : '';
-    return `
-      <button type="button" class="copy-day-item" data-copy-from="${h.date}">
-        <div>
-          <div class="copy-day-date">${h.date}</div>
-          <div class="copy-day-meta">${esc(names)}${esc(more)}</div>
-        </div>
-        <span class="copy-day-count">${h.exercises.length}種目</span>
-      </button>`;
-  }).join('');
+function renderAddExercise(){
+  const addType = state.screen.addType || 'weight';
+  const partId = state.screen.addPartId || PART_ORDER[0];
+  const circuitId = state.screen.addCircuitId || state.circuits[0]?.id || '';
+  const part = getPart(partId);
+  const exOptions = part ? part.exercises.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('') : '';
+  const partOptions = getPartList().map(p=>`<option value="${p.id}" ${p.id===partId?'selected':''}>${esc(p.name)}</option>`).join('');
+  const circuitOptions = state.circuits.map(c=>`<option value="${c.id}" ${c.id===circuitId?'selected':''}>${esc(c.name)}</option>`).join('');
+  const selectedCircuit = getCircuit(circuitId);
+  const videoUrl = state.screen.addVideoUrl ?? selectedCircuit?.url ?? '';
+
+  const weightFields = `
+    <label>① 部位を選択</label>
+    <select data-add-part>${partOptions}</select>
+    <label>② 種目を選択</label>
+    <select data-add-exercise>${exOptions}</select>`;
+
+  const videoFields = `
+    <label>YouTubeサーキットを選択</label>
+    <select data-add-circuit>${circuitOptions}</select>
+    <label>YouTube URL（任意）</label>
+    <input type="url" data-add-video-url placeholder="https://www.youtube.com/watch?v=..." value="${esc(videoUrl)}" style="width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:14px;color:var(--text);font-size:15px;font-family:inherit;margin-bottom:16px;">`;
+
   return `
-    <div class="copy-panel">
-      <div class="copy-panel-title">${esc(formatDateLabel(targetDate))} にコピー</div>
-      ${items}
-      <button class="btn btn-ghost" data-action="cancel-copy">キャンセル</button>
-    </div>`;
+    <header class="topbar">
+      <button class="icon-btn" data-action="back-home" aria-label="戻る">‹</button>
+      <div class="page-title sub">種目を追加</div>
+      <div style="width:44px"></div>
+    </header>
+    <main>
+      <div class="add-panel" style="margin-bottom:0;">
+        <div class="add-type-tabs">
+          <button type="button" class="add-type-tab ${addType==='weight'?'is-active':''}" data-set-add-type="weight">筋トレ種目</button>
+          <button type="button" class="add-type-tab ${addType==='video'?'is-active':''}" data-set-add-type="video">YouTubeサーキット</button>
+        </div>
+        ${addType==='weight' ? weightFields : videoFields}
+        <button class="btn btn-primary" data-action="confirm-add">追加する</button>
+      </div>
+    </main>`;
 }
 
 function renderHome(){
   const draft = ensureDraft();
   const date = getWorkDate();
-  const showAdd = state.screen.showAddPanel;
-  const showCopy = state.screen.showCopyPanel;
-  const partId = state.screen.addPartId || PART_ORDER[0];
-  const part = getPart(partId);
-  const exOptions = part ? part.exercises.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('') : '';
-  const partOptions = getPartList().map(p=>`<option value="${p.id}" ${p.id===partId?'selected':''}>${esc(p.name)}</option>`).join('');
-
   const cards = draft.exercises.map(renderWorkoutCard).join('');
   const statusBar = renderStatusBar(draft);
-  const workoutStatus = getWorkoutStatus(draft);
-  const saveLabel = workoutStatus === 'after' ? '記録を更新' : (isToday(date) ? '記録を保存（完了）' : 'この日の記録を保存');
-
-  const addPanel = showAdd ? `
-    <div class="add-panel">
-      <label>① 部位を選択</label>
-      <select data-add-part>${partOptions}</select>
-      <label>② 種目を選択</label>
-      <select data-add-exercise>${exOptions}</select>
-      <button class="btn btn-primary" data-action="confirm-add">追加する</button>
-      <button class="btn btn-ghost" data-action="cancel-add">キャンセル</button>
-    </div>
-  ` : '';
+  const saveLabel = '記録を保存';
+  const canCopyToToday = !isToday(date) && draft.exercises.length;
+  const dateLabel = formatDateWithWeekday(date);
 
   return `
     <header class="topbar">
+      <button class="icon-btn" data-action="back-calendar" aria-label="筋トレログに戻る">‹</button>
       <div>
-        <div class="page-title">今日のトレーニング</div>
-        <div class="page-sub">${isToday(date) ? '今日' : formatDateLabel(date)}${isToday(date)?' · '+date:''}</div>
-        ${!isToday(date)?'<div class="date-badge">'+esc(formatDateLabel(date))+'</div>':''}
+        <div class="page-title">${isToday(date) ? '今日のトレーニング' : formatDateLabel(date)}</div>
+        <div class="page-sub">${dateLabel}</div>
       </div>
-      <div style="display:flex;gap:4px;">
-        <button class="icon-btn" data-action="calendar">📅</button>
-        <button class="icon-btn" data-action="history">☰</button>
-      </div>
+      <button class="icon-btn" data-action="history" aria-label="履歴">☰</button>
     </header>
     <main>
-      ${!isToday(date)?'<button class="btn-today-link" data-action="go-today">← 今日に戻る</button>':''}
       ${statusBar}
+      ${draft.exercises.length ? '<div class="save-hint">入力後は「記録を保存」をタップしてください</div>' : ''}
       ${cards || '<div class="empty-state"><div class="big">🏋️</div>種目を追加して<br>トレーニングを記録しましょう</div>'}
     </main>
     <div class="finish-bar">
-      ${showCopy ? renderCopyPanel() : (!showAdd && getCopySourceDays().length ? '<button class="btn-copy-ex" data-action="show-copy">📋 他の日からコピー</button>' : '')}
-      ${showAdd ? addPanel : (!showCopy ? '<button class="btn-add-ex" data-action="show-add">＋ 種目を追加</button>' : '')}
+      ${canCopyToToday ? '<button class="btn-copy-ex" data-action="copy-to-today">📋 本日にコピー</button>' : ''}
+      <button class="btn-add-ex" data-action="go-add">＋ 種目を追加</button>
       <button class="btn btn-primary" data-action="save-workout" ${!draft.exercises.length?'disabled':''}>${saveLabel}</button>
     </div>`;
 }
 
 function renderHistory(){
-  const targetDate = getWorkDate();
+  const today = todayStr();
   const items = [...state.history].reverse().map(h=>{
     const exLines = h.exercises.map(ex=>{
-      const sets = ex.sets.filter(s=>s.weight||s.reps).map(s=>`${s.weight||'-'}kg×${s.reps||'-'}`).join(', ');
-      return `<div class="hist-ex">${esc(ex.name)} ${sets?esc(sets):''}</div>`;
+      if(ex.type === 'video'){
+        return `<div class="hist-ex-row"><span class="hist-ex-name">${esc(ex.name)}</span><span class="hist-ex-stats">${ex.done?'視聴完了':'未視聴'}</span></div>`;
+      }
+      const logged = (ex.sets || []).filter(s=>s.weight||s.reps);
+      const stats = logged.length
+        ? logged.map(s=>`${s.weight||'-'}kg×${s.reps||'-'}`).join(' / ')
+        : '未記録';
+      return `<div class="hist-ex-row"><span class="hist-ex-name">${esc(ex.name)}</span><span class="hist-ex-stats">${esc(stats)}</span></div>`;
     }).join('');
-    const canCopy = h.date !== targetDate && h.exercises.length;
+    const canCopy = h.date !== today && h.exercises.length;
     return `<div class="hist-item">
       <div class="hist-head">
         <div class="hist-date">${h.date}</div>
-        ${canCopy ? `<button type="button" class="hist-copy" data-copy-from="${h.date}">コピー</button>` : ''}
+        ${canCopy ? `<button type="button" class="hist-copy" data-copy-to-today="${h.date}">本日にコピー</button>` : ''}
       </div>
-      ${exLines||'<div class="hist-ex">記録なし</div>'}
+      ${exLines||'<div class="hist-ex-stats">記録なし</div>'}
     </div>`;
   }).join('');
   return `
     <header class="topbar">
-      <button class="icon-btn" data-action="back">‹</button>
-      <div class="page-title" style="font-size:18px;">履歴</div>
-      <button class="icon-btn" data-action="export" title="CSVダウンロード">📥</button>
+      <button class="icon-btn" data-action="back-calendar" aria-label="筋トレログに戻る">‹</button>
+      <div class="page-title sub">履歴</div>
+      <button class="icon-btn icon-btn-labeled" data-action="export" aria-label="CSVダウンロード">
+        <span class="icon-btn-icon">📥</span><span>CSV</span>
+      </button>
     </header>
     <main>${items||'<div class="empty-state"><div class="big">📋</div>まだ履歴がありません</div>'}</main>`;
 }
@@ -702,9 +829,9 @@ function renderExport(){
 
   return `
     <header class="topbar">
-      <button class="icon-btn" data-action="back-history">‹</button>
-      <div class="page-title" style="font-size:18px;">CSVダウンロード</div>
-      <div style="width:36px"></div>
+      <button class="icon-btn" data-action="back-history" aria-label="履歴に戻る">‹</button>
+      <div class="page-title sub">CSVダウンロード</div>
+      <div style="width:44px"></div>
     </header>
     <main>
       <div class="export-panel">
@@ -742,44 +869,32 @@ function renderCalendar(){
   for(let d=1;d<=dim;d++){
     const ds=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     const trained=!!byDate[ds];
-    const sel=state.screen.selectedDate===ds;
-    cells.push(`<div class="cal-cell ${trained?'trained':''} ${ds===todayS?'today':''} ${sel?'selected':''}" data-cal-date="${ds}">${d}</div>`);
-  }
-  let detail='';
-  if(state.screen.selectedDate){
-    const h=byDate[state.screen.selectedDate];
-    detail=`<div style="margin-top:20px;">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">${state.screen.selectedDate}</div>
-      ${h?h.exercises.map(ex=>`<div class="hist-ex">${esc(ex.name)}</div>`).join(''):'<div class="empty-state" style="padding:20px">記録なし</div>'}
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px;">
-        <button class="btn btn-primary" data-action="edit-date">${h?'記録を編集':'この日の記録を入力'}</button>
-        ${h && h.exercises.length && state.screen.selectedDate !== getWorkDate() ? `<button class="btn btn-secondary" data-copy-from="${state.screen.selectedDate}">${esc(formatDateLabel(getWorkDate()))} にメニューをコピー</button>` : ''}
-      </div>
-    </div>`;
+    cells.push(`<div class="cal-cell ${trained?'trained':''} ${ds===todayS?'today':''}" data-cal-date="${ds}">${d}</div>`);
   }
   return `
     <header class="topbar">
-      <button class="icon-btn" data-action="back">‹</button>
-      <div class="page-title" style="font-size:18px;">カレンダー</div>
-      <div style="width:36px"></div>
+      <div class="page-title">筋トレログ</div>
+      <button class="icon-btn" data-action="history" aria-label="履歴">☰</button>
     </header>
     <main>
+      <button type="button" class="btn-today-workout" data-action="go-today-edit">今日のトレーニング</button>
+      <div class="cal-hint">日付をタップしてメニューを編集</div>
       <div class="cal-nav">
-        <button data-cal-nav="-1">‹</button>
+        <button data-cal-nav="-1" aria-label="前の月">‹</button>
         <div style="font-weight:800;font-family:var(--mono)">${year}年${month+1}月</div>
-        <button data-cal-nav="1">›</button>
+        <button data-cal-nav="1" aria-label="次の月">›</button>
       </div>
       <div class="cal-weekdays"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
       <div class="cal-grid">${cells.join('')}</div>
-      ${detail}
     </main>`;
 }
 
 function attachHandlers(){
   const app=document.getElementById('app');
 
-  app.querySelectorAll('[data-action="back"]').forEach(el=>el.onclick=()=>{ state.screen={name:'home'}; render(); });
+  app.querySelector('[data-action="back-calendar"]')?.addEventListener('click',()=>{ openCalendarScreen(); render(); });
   app.querySelector('[data-action="back-history"]')?.addEventListener('click',()=>{ state.screen={name:'history'}; render(); });
+  app.querySelector('[data-action="back-home"]')?.addEventListener('click',()=>{ state.screen={name:'home'}; render(); });
   app.querySelector('[data-action="history"]')?.addEventListener('click',()=>{ state.screen={name:'history'}; render(); });
   app.querySelector('[data-action="export"]')?.addEventListener('click',()=>{
     const bounds = getHistoryDateBounds();
@@ -820,45 +935,73 @@ function attachHandlers(){
       render();
     };
   });
-  app.querySelector('[data-action="calendar"]')?.addEventListener('click',()=>{
-    const n=new Date();
-    state.screen={name:'calendar',year:n.getFullYear(),month:n.getMonth(),selectedDate:null};
+  app.querySelector('[data-action="go-today-edit"]')?.addEventListener('click',()=>{ openEditDate(todayStr()); });
+  app.querySelector('[data-action="go-add"]')?.addEventListener('click',()=>{
+    state.screen={
+      name:'addExercise',
+      addType:'weight',
+      addPartId:PART_ORDER[0],
+      addCircuitId:state.circuits[0]?.id || '',
+      addVideoUrl:''
+    };
     render();
   });
-  app.querySelector('[data-action="go-today"]')?.addEventListener('click',async()=>{
-    state.workDate=null; state.draft=null; state.expandedExIds=[];
-    await save(STORAGE.workDate,null); render();
+  app.querySelector('[data-action="copy-to-today"]')?.addEventListener('click',async()=>{
+    const ok = await copyDayToToday(getWorkDate());
+    if(!ok) alert('本日にコピーできるメニューがありません');
   });
-  app.querySelector('[data-action="show-add"]')?.addEventListener('click',()=>{
-    state.screen={name:'home',showAddPanel:true,addPartId:PART_ORDER[0]};
-    render();
-  });
-  app.querySelector('[data-action="show-copy"]')?.addEventListener('click',()=>{
-    state.screen={name:'home',showCopyPanel:true};
-    render();
-  });
-  app.querySelector('[data-action="cancel-copy"]')?.addEventListener('click',()=>{
-    state.screen={name:'home'}; render();
-  });
-  app.querySelectorAll('[data-copy-from]').forEach(el=>{
+  app.querySelectorAll('[data-copy-to-today]').forEach(el=>{
     el.onclick=async()=>{
-      const sourceDate=el.getAttribute('data-copy-from');
-      await applyCopyFromDate(sourceDate);
+      const ok = await copyDayToToday(el.getAttribute('data-copy-to-today'));
+      if(!ok) alert('本日にコピーできるメニューがありません');
     };
   });
-  app.querySelector('[data-action="cancel-add"]')?.addEventListener('click',()=>{
-    state.screen={name:'home'}; render();
+  app.querySelectorAll('[data-set-add-type]').forEach(el=>{
+    el.onclick=()=>{
+      const addType = el.getAttribute('data-set-add-type');
+      state.screen.addType = addType;
+      if(addType === 'video'){
+        state.screen.addCircuitId = state.screen.addCircuitId || state.circuits[0]?.id || '';
+        state.screen.addVideoUrl = getCircuit(state.screen.addCircuitId)?.url || '';
+      }
+      render();
+    };
   });
   app.querySelector('[data-add-part]')?.addEventListener('change',e=>{
     state.screen.addPartId=e.target.value; render();
   });
+  app.querySelector('[data-add-circuit]')?.addEventListener('change',e=>{
+    state.screen.addCircuitId=e.target.value;
+    state.screen.addVideoUrl = getCircuit(e.target.value)?.url || '';
+    render();
+  });
+  app.querySelector('[data-add-video-url]')?.addEventListener('input',e=>{
+    state.screen.addVideoUrl = e.target.value;
+  });
   app.querySelector('[data-action="confirm-add"]')?.addEventListener('click',async()=>{
-    const partId=app.querySelector('[data-add-part]')?.value;
-    const exName=app.querySelector('[data-add-exercise]')?.value;
-    if(!partId||!exName) return;
-    const newId=addExerciseToDraft(partId, exName);
+    const addType = state.screen.addType || 'weight';
+    let newId;
+    if(addType === 'video'){
+      const circuitId = app.querySelector('[data-add-circuit]')?.value;
+      const circuit = getCircuit(circuitId);
+      const videoUrl = app.querySelector('[data-add-video-url]')?.value?.trim() || circuit?.url || '';
+      if(!circuit){ alert('サーキットを選択してください'); return; }
+      newId = addExerciseToDraft({
+        partId:'video',
+        name:circuit.name,
+        type:'video',
+        videoUrl
+      });
+    } else {
+      const partId=app.querySelector('[data-add-part]')?.value;
+      const exName=app.querySelector('[data-add-exercise]')?.value;
+      if(!partId||!exName) return;
+      newId = addExerciseToDraft({ partId, name:exName, type:'weight' });
+    }
     state.expandedExIds=[newId];
-    state.screen={name:'home'}; await persist(); render();
+    state.screen={name:'home'};
+    await persist();
+    render();
   });
 
   app.querySelectorAll('[data-toggle-expand]').forEach(el=>{
@@ -912,7 +1055,7 @@ function attachHandlers(){
     el.onclick=async()=>{
       const draft=ensureDraft();
       const ex=draft.exercises.find(e=>e.id===el.getAttribute('data-add-set'));
-      if(!ex||ex.sets.length>=10) return;
+      if(!ex||ex.type==='video'||!ex.sets||ex.sets.length>=10) return;
       const prev=ex.sets[ex.sets.length-1];
       ex.sets.push(createEmptySet(prev?.weight,prev?.reps));
       await persist(); render();
@@ -967,37 +1110,13 @@ function attachHandlers(){
       let {year,month}=state.screen;
       month+=+el.getAttribute('data-cal-nav');
       if(month<0){month=11;year--;} if(month>11){month=0;year++;}
-      state.screen.year=year; state.screen.month=month; state.screen.selectedDate=null;
+      state.screen.year=year; state.screen.month=month;
       render();
     };
   });
   app.querySelectorAll('[data-cal-date]').forEach(el=>{
-    el.onclick=()=>{
-      const d=el.getAttribute('data-cal-date');
-      state.screen.selectedDate=state.screen.selectedDate===d?null:d;
-      render();
-    };
+    el.onclick=()=>{ openEditDate(el.getAttribute('data-cal-date')); };
   });
-  app.querySelector('[data-action="edit-date"]')?.addEventListener('click',async()=>{
-    state.workDate=state.screen.selectedDate;
-    state.draft=null;
-    state.expandedExIds=[];
-    await save(STORAGE.workDate,state.workDate);
-    state.screen={name:'home'}; render();
-  });
-}
-
-async function applyCopyFromDate(sourceDate){
-  const draft=ensureDraft();
-  if(draft.exercises.length){
-    const ok=confirm(`${formatDateLabel(sourceDate)} のメニューで上書きしますか？\n現在の種目は置き換わります。`);
-    if(!ok) return;
-  }
-  if(!copyWorkoutFromDate(sourceDate)){ alert('コピーできませんでした'); return; }
-  state.screen={name:'home'};
-  state.expandedExIds=[];
-  await persist();
-  render();
 }
 
 async function saveWorkout(){
@@ -1007,15 +1126,16 @@ async function saveWorkout(){
   const entry=JSON.parse(JSON.stringify(draft));
   if(idx>=0) state.history[idx]=entry; else state.history.push(entry);
   state.draft=JSON.parse(JSON.stringify(entry));
-  if(isToday(draft.date)) state.workDate=null;
-  else state.workDate=null;
+  state.workDate=null;
+  state.expandedExIds=[];
   await persist();
-  state.screen={name:'home'};
+  openCalendarScreen();
   render();
 }
 
 async function persist(){
   await save(STORAGE.catalog,state.catalog);
+  await save(STORAGE.circuits,state.circuits);
   await save(STORAGE.history,state.history);
   await save(STORAGE.draft,state.draft);
   await save(STORAGE.workDate,state.workDate);
@@ -1027,14 +1147,17 @@ function migrateFromV1(){
 
 async function init(){
   document.getElementById('app').innerHTML='<div class="empty-state">読み込み中…</div>';
-  const [catalog,history,draft,workDate]=await Promise.all([
-    load(STORAGE.catalog), load(STORAGE.history), load(STORAGE.draft), load(STORAGE.workDate)
+  const [catalog,circuits,history,draft,workDate]=await Promise.all([
+    load(STORAGE.catalog), load(STORAGE.circuits), load(STORAGE.history), load(STORAGE.draft), load(STORAGE.workDate)
   ]);
   state.catalog=catalog||DEFAULT_CATALOG;
+  state.circuits=circuits?.length ? circuits : DEFAULT_YOUTUBE_CIRCUITS;
   state.history=history||[];
   state.draft=draft;
   state.workDate=workDate||null;
-  if(!catalog) await persist();
+  const n=new Date();
+  state.screen={name:'calendar',year:n.getFullYear(),month:n.getMonth()};
+  if(!catalog || !circuits) await persist();
   render();
 }
 
