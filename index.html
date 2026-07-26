@@ -168,6 +168,18 @@
     background:var(--panel-2); color:var(--text);
     font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
   }
+  .btn-delete-ex-card{
+    width:100%; padding:12px; margin-top:12px;
+    border-radius:12px; border:1px solid rgba(255,90,78,.4);
+    background:none; color:var(--danger);
+    font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .btn-reset-day{
+    width:100%; padding:12px; margin-top:16px;
+    border-radius:12px; border:1px dashed rgba(255,90,78,.4);
+    background:none; color:var(--danger);
+    font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
 
   .empty-state{text-align:center; padding:48px 20px; color:var(--muted); line-height:1.7;}
   .empty-state .big{font-size:40px; margin-bottom:12px;}
@@ -194,35 +206,52 @@
   .hist-ex-stats{font-size:13px; color:var(--muted); text-align:right; flex-shrink:0; max-width:55%; line-height:1.4;}
 
   .btn-today-workout{
-    width:100%; padding:14px 16px; margin:4px 0 12px;
-    border-radius:14px; border:none;
+    width:100%; padding:12px 16px; margin:0 0 10px;
+    border-radius:12px; border:none;
     background:var(--accent); color:#1a1200;
-    font-size:16px; font-weight:800; cursor:pointer; font-family:inherit;
+    font-size:15px; font-weight:800; cursor:pointer; font-family:inherit;
   }
   .cal-hint{
-    text-align:center; font-size:14px; color:var(--muted);
-    line-height:1.6; margin-bottom:16px;
+    text-align:center; font-size:12px; color:var(--muted);
+    line-height:1.5; margin-bottom:10px;
   }
+  .cal-section{margin-bottom:16px;}
 
-  .cal-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+  .cal-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .cal-nav-label{font-weight:800; font-family:var(--mono); font-size:14px;}
   .cal-nav button{
     background:var(--panel); border:1px solid var(--line); color:var(--text);
-    width:44px; height:44px; border-radius:10px; cursor:pointer;
+    width:36px; height:36px; border-radius:8px; cursor:pointer; font-size:16px;
   }
-  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:8px;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
   .cal-cell{
-    aspect-ratio:1; border-radius:12px; border:1px solid var(--line); background:var(--panel);
-    display:flex; align-items:center; justify-content:center;
-    font-size:15px; color:var(--muted); cursor:pointer;
+    aspect-ratio:1; max-height:36px; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel); display:flex; align-items:center; justify-content:center;
+    font-size:12px; color:var(--muted); cursor:pointer;
   }
   .cal-cell.empty{border:none; background:none; cursor:default;}
   .cal-cell.today{
     border-color:var(--text); font-weight:800; color:var(--text);
-    outline:2px solid var(--text); outline-offset:1px;
+    outline:1px solid var(--text); outline-offset:0;
   }
-  .cal-cell.trained{background:var(--done); color:#0B0D10; font-weight:800; outline:none;}
-  .cal-weekdays{display:grid; grid-template-columns:repeat(7,1fr); text-align:center; margin-bottom:8px;}
-  .cal-weekdays span{font-size:12px; color:var(--muted); font-weight:700;}
+  .cal-cell.trained{background:var(--done); color:#0B0D10; font-weight:800; outline:none; border-color:var(--done);}
+  .cal-weekdays{display:grid; grid-template-columns:repeat(7,1fr); text-align:center; margin-bottom:4px;}
+  .cal-weekdays span{font-size:10px; color:var(--muted); font-weight:700;}
+
+  .summary-section{margin-top:4px;}
+  .summary-title{font-size:13px; font-weight:700; color:var(--muted); margin-bottom:10px; letter-spacing:0.02em;}
+  .summary-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .summary-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:14px 12px;
+  }
+  .summary-card-wide{grid-column:1 / -1;}
+  .summary-label{font-size:12px; color:var(--muted); margin-bottom:8px; font-weight:600;}
+  .summary-value{
+    font-size:26px; font-weight:800; color:var(--accent);
+    font-family:var(--mono); line-height:1.1;
+  }
+  .summary-unit{font-size:13px; color:var(--text); font-weight:700; margin-left:3px;}
 
   .save-hint{
     font-size:12px; color:var(--muted); margin:-12px 0 16px; line-height:1.5;
@@ -314,6 +343,7 @@ const PART_ORDER = ['chest','back','shoulder','legs','biceps','triceps','abs','f
 const DEFAULT_SET_COUNT = 3;
 
 let outsideCloseCleanup = null;
+let collapseSuppressUntil = 0;
 
 let state = {
   catalog: null,
@@ -425,6 +455,24 @@ function removeExerciseFromDraft(exId){
   draft.exercises = draft.exercises.filter(e=>e.id!==exId);
 }
 
+async function resetDayWorkout(){
+  const draft = ensureDraft();
+  const date = draft.date;
+  const hasDraft = draft.exercises.length > 0;
+  const hasHistory = state.history.some(h=>h.date===date);
+  if(!hasDraft && !hasHistory) return false;
+
+  const label = isToday(date) ? '今日' : formatDateLabel(date);
+  if(!confirm(`${label}のメニューをすべて削除しますか？\n保存済みの記録も消えます。`)) return false;
+
+  state.draft = { date, exercises: [] };
+  state.history = state.history.filter(h=>h.date!==date);
+  state.expandedExIds = [];
+  await persist();
+  render();
+  return true;
+}
+
 function cloneExercisesForCopy(exercises){
   const base = Date.now();
   return exercises.map((ex,i)=>({
@@ -496,6 +544,86 @@ function getMonthRange(offset=0){
   const endDay = new Date(y, m+1, 0).getDate();
   const end = `${y}-${String(m+1).padStart(2,'0')}-${String(endDay).padStart(2,'0')}`;
   return { start, end };
+}
+
+function dateStrFromDate(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function getWeekRange(refDate=new Date()){
+  const d = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate());
+  const start = new Date(d);
+  start.setDate(d.getDate() - d.getDay());
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  return { start: dateStrFromDate(start), end: dateStrFromDate(end) };
+}
+
+function isTrainedDay(entry){
+  return !!(entry && entry.exercises && entry.exercises.length);
+}
+
+function calcSetVolume(set){
+  const w = parseFloat(set.weight);
+  const r = parseFloat(set.reps);
+  if(!Number.isFinite(w) || !Number.isFinite(r) || w <= 0 || r <= 0) return 0;
+  return w * r;
+}
+
+function calcDayVolume(entry){
+  if(!entry) return 0;
+  let vol = 0;
+  entry.exercises.forEach(ex=>{
+    if(ex.type === 'video') return;
+    (ex.sets || []).forEach(s=>{ vol += calcSetVolume(s); });
+  });
+  return vol;
+}
+
+function getDashboardStats(){
+  const now = new Date();
+  const week = getWeekRange(now);
+  const month = getMonthRange(0);
+  let weekCount = 0;
+  let monthCount = 0;
+  let weekVolume = 0;
+
+  state.history.forEach(h=>{
+    if(!isTrainedDay(h)) return;
+    if(h.date >= week.start && h.date <= week.end){
+      weekCount++;
+      weekVolume += calcDayVolume(h);
+    }
+    if(h.date >= month.start && h.date <= month.end) monthCount++;
+  });
+
+  return { weekCount, monthCount, weekVolume };
+}
+
+function formatVolume(kg){
+  return Math.round(kg).toLocaleString('ja-JP');
+}
+
+function renderSummaryDashboard(){
+  const stats = getDashboardStats();
+  return `
+    <section class="summary-section">
+      <div class="summary-title">サマリー</div>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-label">今週のトレーニング</div>
+          <div class="summary-value">${stats.weekCount}<span class="summary-unit">回</span></div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">今月のトレーニング</div>
+          <div class="summary-value">${stats.monthCount}<span class="summary-unit">回</span></div>
+        </div>
+        <div class="summary-card summary-card-wide">
+          <div class="summary-label">今週の総ボリューム</div>
+          <div class="summary-value">${formatVolume(stats.weekVolume)}<span class="summary-unit">kg</span></div>
+        </div>
+      </div>
+    </section>`;
 }
 
 function buildExportRows(startDate, endDate){
@@ -579,15 +707,35 @@ function collapseExercise(exId){
   state.expandedExIds = state.expandedExIds.filter(id=>id!==exId);
 }
 
+function suppressCardCollapse(ms=400){
+  collapseSuppressUntil = Date.now() + ms;
+}
+
+function isCollapseSuppressed(){
+  return Date.now() < collapseSuppressUntil;
+}
+
+function keepExerciseExpanded(exId){
+  if(exId) state.expandedExIds = [exId];
+}
+
+function bindCardKeepOpen(el){
+  const suppress=()=>suppressCardCollapse();
+  el.addEventListener('mousedown', suppress);
+  el.addEventListener('touchstart', suppress, {passive:true});
+}
+
 function shouldIgnoreOutsideCollapse(target){
   if(!target) return true;
   if(target.closest('[data-toggle-expand]')) return true;
   if(target.closest('.finish-bar, header.topbar, [data-action], .btn-collapse-card')) return true;
+  if(target.closest('.workout-card-body button, .workout-card-body input, .workout-card-body select')) return true;
   return false;
 }
 
 function handleSetInputBlur(exId){
   setTimeout(()=>{
+    if(isCollapseSuppressed()) return;
     if(!isExerciseExpanded(exId)) return;
     const card = document.querySelector(`[data-card="${exId}"]`);
     const active = document.activeElement;
@@ -666,6 +814,7 @@ function renderWorkoutCard(ex){
     bodyContent = `
       ${setLines}
       <button type="button" class="btn-add-set-card" data-add-set="${ex.id}" ${canAdd?'':'disabled'}>＋ セット追加</button>
+      <button type="button" class="btn-delete-ex-card" data-delete-ex="${ex.id}">この種目を削除</button>
       <button type="button" class="btn-collapse-card" data-collapse-ex="${ex.id}">閉じる</button>`;
   }
 
@@ -691,6 +840,7 @@ function renderWorkoutCard(ex){
       </div>
       <div class="workout-card-body">
         ${bodyContent}
+        ${isVideo ? `<button type="button" class="btn-delete-ex-card" data-delete-ex="${ex.id}">この種目を削除</button>` : ''}
         ${isVideo ? `<button type="button" class="btn-collapse-card" data-collapse-ex="${ex.id}">閉じる</button>` : ''}
       </div>
     </div>`;
@@ -765,6 +915,8 @@ function renderHome(){
   const canCopyToToday = !isToday(date) && draft.exercises.length;
   const dateLabel = formatDateWithWeekday(date);
 
+  const canResetDay = draft.exercises.length || state.history.some(h=>h.date===date);
+
   return `
     <header class="topbar">
       <button class="icon-btn" data-action="back-calendar" aria-label="筋トレログに戻る">‹</button>
@@ -778,6 +930,7 @@ function renderHome(){
       ${statusBar}
       ${draft.exercises.length ? '<div class="save-hint">入力後は「記録を保存」をタップしてください</div>' : ''}
       ${cards || '<div class="empty-state"><div class="big">🏋️</div>種目を追加して<br>トレーニングを記録しましょう</div>'}
+      ${canResetDay ? '<button type="button" class="btn-reset-day" data-action="reset-day">この日のメニューをリセット</button>' : ''}
     </main>
     <div class="finish-bar">
       ${canCopyToToday ? '<button class="btn-copy-ex" data-action="copy-to-today">📋 本日にコピー</button>' : ''}
@@ -868,7 +1021,7 @@ function renderCalendar(){
   for(let i=0;i<startWd;i++) cells.push('<div class="cal-cell empty"></div>');
   for(let d=1;d<=dim;d++){
     const ds=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    const trained=!!byDate[ds];
+    const trained=isTrainedDay(byDate[ds]);
     cells.push(`<div class="cal-cell ${trained?'trained':''} ${ds===todayS?'today':''}" data-cal-date="${ds}">${d}</div>`);
   }
   return `
@@ -879,13 +1032,16 @@ function renderCalendar(){
     <main>
       <button type="button" class="btn-today-workout" data-action="go-today-edit">今日のトレーニング</button>
       <div class="cal-hint">日付をタップしてメニューを編集</div>
-      <div class="cal-nav">
-        <button data-cal-nav="-1" aria-label="前の月">‹</button>
-        <div style="font-weight:800;font-family:var(--mono)">${year}年${month+1}月</div>
-        <button data-cal-nav="1" aria-label="次の月">›</button>
+      <div class="cal-section">
+        <div class="cal-nav">
+          <button data-cal-nav="-1" aria-label="前の月">‹</button>
+          <div class="cal-nav-label">${year}年${month+1}月</div>
+          <button data-cal-nav="1" aria-label="次の月">›</button>
+        </div>
+        <div class="cal-weekdays"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
+        <div class="cal-grid">${cells.join('')}</div>
       </div>
-      <div class="cal-weekdays"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
-      <div class="cal-grid">${cells.join('')}</div>
+      ${renderSummaryDashboard()}
     </main>`;
 }
 
@@ -1040,24 +1196,32 @@ function attachHandlers(){
     };
   });
 
+  app.querySelector('[data-action="reset-day"]')?.addEventListener('click',()=>{ resetDayWorkout(); });
+
   app.querySelectorAll('[data-delete-ex]').forEach(el=>{
     el.onclick=async()=>{
-      if(confirm('この種目を削除しますか？')){
-        const exId=el.getAttribute('data-delete-ex');
-        removeExerciseFromDraft(exId);
-        state.expandedExIds=state.expandedExIds.filter(id=>id!==exId);
-        await persist(); render();
-      }
+      const exId=el.getAttribute('data-delete-ex');
+      const draft=ensureDraft();
+      const ex=draft.exercises.find(e=>e.id===exId);
+      if(!ex) return;
+      if(!confirm(`「${ex.name}」を削除しますか？`)) return;
+      removeExerciseFromDraft(exId);
+      state.expandedExIds=state.expandedExIds.filter(id=>id!==exId);
+      await persist(); render();
     };
   });
 
   app.querySelectorAll('[data-add-set]').forEach(el=>{
+    bindCardKeepOpen(el);
     el.onclick=async()=>{
+      const exId=el.getAttribute('data-add-set');
       const draft=ensureDraft();
-      const ex=draft.exercises.find(e=>e.id===el.getAttribute('data-add-set'));
+      const ex=draft.exercises.find(e=>e.id===exId);
       if(!ex||ex.type==='video'||!ex.sets||ex.sets.length>=10) return;
       const prev=ex.sets[ex.sets.length-1];
       ex.sets.push(createEmptySet(prev?.weight,prev?.reps));
+      keepExerciseExpanded(exId);
+      suppressCardCollapse();
       await persist(); render();
     };
   });
@@ -1082,24 +1246,35 @@ function attachHandlers(){
   });
 
   app.querySelectorAll('[data-set-copy]').forEach(el=>{
+    bindCardKeepOpen(el);
     el.onclick=async()=>{
+      const exId=el.getAttribute('data-ex-id');
       const draft=ensureDraft();
-      const ex=draft.exercises.find(e=>e.id===el.getAttribute('data-ex-id'));
+      const ex=draft.exercises.find(e=>e.id===exId);
       const idx=+el.getAttribute('data-set-idx');
       if(ex&&idx>0){
         ex.sets[idx].weight=ex.sets[idx-1].weight;
         ex.sets[idx].reps=ex.sets[idx-1].reps;
+        keepExerciseExpanded(exId);
+        suppressCardCollapse();
         await persist(); render();
       }
     };
   });
 
   app.querySelectorAll('[data-set-remove]').forEach(el=>{
+    bindCardKeepOpen(el);
     el.onclick=async()=>{
+      const exId=el.getAttribute('data-ex-id');
       const draft=ensureDraft();
-      const ex=draft.exercises.find(e=>e.id===el.getAttribute('data-ex-id'));
+      const ex=draft.exercises.find(e=>e.id===exId);
       const idx=+el.getAttribute('data-set-idx');
-      if(ex){ ex.sets.splice(idx,1); await persist(); render(); }
+      if(ex){
+        ex.sets.splice(idx,1);
+        keepExerciseExpanded(exId);
+        suppressCardCollapse();
+        await persist(); render();
+      }
     };
   });
 
