@@ -135,48 +135,71 @@
   .workout-card.is-expanded .workout-card-body{display:block;}
 
   .set-line{
-    display:flex; align-items:center; gap:8px; margin-bottom:10px;
+    margin-bottom:12px; padding-bottom:12px;
+    border-bottom:1px solid var(--line);
   }
-  .set-line.is-logged{
-    border-left:2px solid var(--done); padding-left:8px; margin-left:-2px;
+  .set-line:last-of-type{border-bottom:none; padding-bottom:0; margin-bottom:0;}
+  .set-line.is-done .set-line-label{color:var(--done);}
+  .set-line.is-done .set-line-inputs{opacity:0.72;}
+  .set-line-top{
+    display:flex; align-items:center; gap:8px; margin-bottom:8px;
   }
-  .set-line-label{font-size:12px; color:var(--muted); font-weight:600; width:48px; flex-shrink:0;}
-  .set-line input{
+  .set-done-toggle{
+    width:36px; height:36px; border-radius:10px; border:2px solid var(--line);
+    background:none; color:transparent; font-size:14px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .set-line.is-done .set-done-toggle{border-color:var(--done); background:var(--done); color:#0B0D10;}
+  .set-line-label{font-size:12px; color:var(--muted); font-weight:600; flex:1;}
+  .set-remove-link{
+    background:none; border:none; color:var(--muted); font-size:11px; font-weight:600;
+    cursor:pointer; font-family:inherit; padding:6px 8px; flex-shrink:0;
+  }
+  .set-remove-link:active{color:var(--danger);}
+  .set-line-inputs{display:flex; align-items:center; gap:8px;}
+  .set-line-inputs input{
     flex:1; min-width:0; background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
     padding:14px 10px; font-size:18px; color:var(--text); font-family:var(--mono); text-align:center;
   }
-  .set-line input:focus{outline:none; border-color:var(--accent);}
-  .set-line input::placeholder{color:var(--muted); font-size:13px;}
+  .set-line-inputs input:focus{outline:none; border-color:var(--accent);}
+  .set-line-inputs input::placeholder{color:var(--muted); font-size:13px;}
   .set-copy{
     width:40px; height:40px; border-radius:10px; border:1px solid var(--line);
     background:none; color:var(--accent); font-size:14px; cursor:pointer; flex-shrink:0;
   }
-  .set-remove-sm{
-    width:40px; height:40px; border-radius:10px; border:none;
-    background:none; color:var(--muted); font-size:18px; cursor:pointer; flex-shrink:0;
-  }
 
+  .set-actions-zone{margin-top:14px; padding-top:14px; border-top:1px solid var(--line);}
   .btn-add-set-card{
-    width:100%; padding:12px; margin-top:4px;
+    width:100%; padding:12px;
     border-radius:12px; border:1px dashed var(--line);
     background:none; color:var(--muted); font-size:14px; font-weight:700;
     cursor:pointer; font-family:inherit;
   }
+  .card-safe-actions{margin-top:14px;}
   .btn-collapse-card{
-    width:100%; padding:12px; margin-top:12px;
+    width:100%; padding:12px;
     border-radius:12px; border:1px solid var(--line);
     background:var(--panel-2); color:var(--text);
     font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
   }
+  .card-danger-zone{
+    margin-top:20px; padding-top:14px; border-top:1px dashed rgba(255,90,78,.25);
+  }
+  .danger-zone-label{
+    font-size:11px; color:var(--muted); font-weight:600; margin-bottom:8px; letter-spacing:0.04em;
+  }
   .btn-delete-ex-card{
-    width:100%; padding:12px; margin-top:12px;
+    width:100%; padding:12px;
     border-radius:12px; border:1px solid rgba(255,90,78,.4);
     background:none; color:var(--danger);
     font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
   }
+  .day-danger-zone{
+    margin-top:24px; padding-top:16px; border-top:1px dashed rgba(255,90,78,.25);
+  }
   .btn-reset-day{
-    width:100%; padding:12px; margin-top:16px;
-    border-radius:12px; border:1px dashed rgba(255,90,78,.4);
+    width:100%; padding:12px;
+    border-radius:12px; border:1px solid rgba(255,90,78,.4);
     background:none; color:var(--danger);
     font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
   }
@@ -367,7 +390,7 @@ function esc(s){ return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 async function load(key){ try{ const r=localStorage.getItem(key); return r?JSON.parse(r):null; }catch(e){ return null; } }
 async function save(key,val){ try{ localStorage.setItem(key,JSON.stringify(val)); }catch(e){} }
 
-function createEmptySet(w='',r=''){ return { weight:String(w), reps:String(r) }; }
+function createEmptySet(w='',r=''){ return { weight:String(w), reps:String(r), done:false }; }
 function createDefaultSets(n=DEFAULT_SET_COUNT){ return Array.from({length:n},()=>createEmptySet()); }
 
 function getPart(partId){ return state.catalog[partId]; }
@@ -387,7 +410,7 @@ function openCalendarScreen(){
 
 async function openEditDate(date){
   state.workDate=isToday(date)?null:date;
-  state.draft=null;
+  if(state.draft?.date !== date) state.draft=null;
   state.expandedExIds=[];
   await save(STORAGE.workDate,state.workDate);
   state.screen={name:'home'};
@@ -401,13 +424,38 @@ function ensureDraft(){
   if(state.draft && state.draft.date === date){
     if(!state.draft.exercises.length && hist)
       state.draft = JSON.parse(JSON.stringify(hist));
-    return state.draft;
+    return normalizeDraft(state.draft);
   }
 
   state.draft = hist
     ? JSON.parse(JSON.stringify(hist))
     : { date, exercises: [] };
-  return state.draft;
+  return normalizeDraft(state.draft);
+}
+
+function normalizeSet(set){
+  return {
+    weight: set?.weight || '',
+    reps: set?.reps || '',
+    done: !!set?.done
+  };
+}
+
+function normalizeExercise(ex){
+  return {
+    id: ex.id,
+    name: ex.name,
+    partId: ex.partId,
+    type: ex.type || 'weight',
+    videoUrl: ex.videoUrl || '',
+    done: !!ex.done,
+    sets: (ex.sets || []).map(normalizeSet)
+  };
+}
+
+function normalizeDraft(draft){
+  draft.exercises = (draft.exercises || []).map(normalizeExercise);
+  return draft;
 }
 
 function isWorkoutSaved(draft){
@@ -423,7 +471,7 @@ function normalizeExercises(list){
     type: ex.type || 'weight',
     videoUrl: ex.videoUrl || '',
     done: !!ex.done,
-    sets: (ex.sets || []).map(s=>({ weight: s.weight||'', reps: s.reps||'' }))
+    sets: (ex.sets || []).map(normalizeSet)
   }));
 }
 
@@ -431,7 +479,9 @@ function isSetLogged(set){ return !!(set.weight || set.reps); }
 
 function getWorkoutStatus(draft){
   if(!draft.exercises.length) return 'empty';
-  return isWorkoutSaved(draft) ? 'after' : 'before';
+  const doneCount = draft.exercises.filter(e=>e.done).length;
+  if(doneCount === draft.exercises.length) return 'after';
+  return 'before';
 }
 
 function addExerciseToDraft({ partId, name, type='weight', videoUrl='' }){
@@ -482,7 +532,7 @@ function cloneExercisesForCopy(exercises){
     type: ex.type || 'weight',
     videoUrl: ex.videoUrl || '',
     done: false,
-    sets: (ex.sets || []).map(s=>({ weight: s.weight||'', reps: s.reps||'' }))
+    sets: (ex.sets || []).map(s=>({ weight: s.weight||'', reps: s.reps||'', done: !!s.done }))
   }));
 }
 
@@ -728,7 +778,7 @@ function bindCardKeepOpen(el){
 function shouldIgnoreOutsideCollapse(target){
   if(!target) return true;
   if(target.closest('[data-toggle-expand]')) return true;
-  if(target.closest('.finish-bar, header.topbar, [data-action], .btn-collapse-card')) return true;
+  if(target.closest('.finish-bar, header.topbar, [data-action], .btn-collapse-card, .card-danger-zone, .day-danger-zone')) return true;
   if(target.closest('.workout-card-body button, .workout-card-body input, .workout-card-body select')) return true;
   return false;
 }
@@ -772,27 +822,34 @@ function setupExpandOutsideClose(){
 
 function renderExerciseSummary(ex){
   if(ex.type === 'video') return ex.done ? '動画視聴完了' : 'YouTubeサーキット';
-  const logged = (ex.sets || []).filter(isSetLogged);
-  if(!logged.length) return `${ex.sets.length}セット · 未入力`;
+  const sets = ex.sets || [];
+  const doneCount = sets.filter(s=>s.done).length;
+  const logged = sets.filter(isSetLogged);
+  if(!logged.length) return `${sets.length}セット · 未入力`;
   const preview = logged.slice(0,2).map(s=>`${s.weight||'-'}kg×${s.reps||'-'}`).join(', ');
   const rest = logged.length > 2 ? ` 他${logged.length-2}セット` : '';
-  const unlogged = ex.sets.length - logged.length;
-  const tail = unlogged > 0 ? ` · 空${unlogged}` : '';
-  return preview + rest + tail;
+  const doneLabel = doneCount ? ` · ${doneCount}/${sets.length}完了` : '';
+  return preview + rest + doneLabel;
 }
 
-function renderSetLine(exId, set, i){
+function renderSetLine(exId, set, i, setCount){
   const logged = isSetLogged(set);
+  const done = !!set.done;
   const n = i + 1;
   return `
-    <div class="set-line ${logged?'is-logged':''}">
-      <span class="set-line-label">セット${n}</span>
-      <input type="number" inputmode="decimal" placeholder="kg" aria-label="セット${n} 重量"
-        data-set-weight data-ex-id="${exId}" data-set-idx="${i}" value="${esc(set.weight)}">
-      <input type="number" inputmode="numeric" placeholder="回" aria-label="セット${n} 回数"
-        data-set-reps data-ex-id="${exId}" data-set-idx="${i}" value="${esc(set.reps)}">
-      ${i>0 ? `<button type="button" class="set-copy" data-set-copy data-ex-id="${exId}" data-set-idx="${i}" aria-label="前セットをコピー" title="前セットをコピー">↳</button>` : '<span style="width:40px;flex-shrink:0"></span>'}
-      <button type="button" class="set-remove-sm" data-set-remove data-ex-id="${exId}" data-set-idx="${i}" aria-label="セット${n}を削除">−</button>
+    <div class="set-line ${logged?'is-logged':''} ${done?'is-done':''}">
+      <div class="set-line-top">
+        <button type="button" class="set-done-toggle" data-set-done data-ex-id="${exId}" data-set-idx="${i}" aria-label="セット${n}を完了">${done?'✓':''}</button>
+        <span class="set-line-label">セット${n}</span>
+        ${setCount > 1 ? `<button type="button" class="set-remove-link" data-set-remove data-ex-id="${exId}" data-set-idx="${i}">削除</button>` : ''}
+      </div>
+      <div class="set-line-inputs">
+        <input type="number" inputmode="decimal" placeholder="kg" aria-label="セット${n} 重量"
+          data-set-weight data-ex-id="${exId}" data-set-idx="${i}" value="${esc(set.weight)}">
+        <input type="number" inputmode="numeric" placeholder="回" aria-label="セット${n} 回数"
+          data-set-reps data-ex-id="${exId}" data-set-idx="${i}" value="${esc(set.reps)}">
+        ${i>0 ? `<button type="button" class="set-copy" data-set-copy data-ex-id="${exId}" data-set-idx="${i}" aria-label="前セットをコピー" title="前セットをコピー">↳</button>` : '<span style="width:40px;flex-shrink:0"></span>'}
+      </div>
     </div>`;
 }
 
@@ -809,13 +866,21 @@ function renderWorkoutCard(ex){
       ? `<div class="video-embed-wrap"><iframe src="${esc(embed)}" allowfullscreen loading="lazy"></iframe></div>`
       : `<div class="video-note">YouTube URLが未設定です。<br>種目を追加し直すか、URL付きサーキットを選んでください。</div>`;
   } else {
-    const setLines = (ex.sets || []).map((s,i)=>renderSetLine(ex.id,s,i)).join('');
-    const canAdd = (ex.sets || []).length < 10;
+    const sets = ex.sets || [];
+    const setLines = sets.map((s,i)=>renderSetLine(ex.id,s,i,sets.length)).join('');
+    const canAdd = sets.length < 10;
     bodyContent = `
       ${setLines}
-      <button type="button" class="btn-add-set-card" data-add-set="${ex.id}" ${canAdd?'':'disabled'}>＋ セット追加</button>
-      <button type="button" class="btn-delete-ex-card" data-delete-ex="${ex.id}">この種目を削除</button>
-      <button type="button" class="btn-collapse-card" data-collapse-ex="${ex.id}">閉じる</button>`;
+      <div class="set-actions-zone">
+        <button type="button" class="btn-add-set-card" data-add-set="${ex.id}" ${canAdd?'':'disabled'}>＋ セット追加</button>
+      </div>
+      <div class="card-safe-actions">
+        <button type="button" class="btn-collapse-card" data-collapse-ex="${ex.id}">閉じる</button>
+      </div>
+      <div class="card-danger-zone">
+        <div class="danger-zone-label">削除操作</div>
+        <button type="button" class="btn-delete-ex-card" data-delete-ex="${ex.id}">この種目を削除</button>
+      </div>`;
   }
 
   const partLabel = isVideo ? 'YouTube' : (part?.name || '');
@@ -840,8 +905,14 @@ function renderWorkoutCard(ex){
       </div>
       <div class="workout-card-body">
         ${bodyContent}
-        ${isVideo ? `<button type="button" class="btn-delete-ex-card" data-delete-ex="${ex.id}">この種目を削除</button>` : ''}
-        ${isVideo ? `<button type="button" class="btn-collapse-card" data-collapse-ex="${ex.id}">閉じる</button>` : ''}
+        ${isVideo ? `
+          <div class="card-safe-actions">
+            <button type="button" class="btn-collapse-card" data-collapse-ex="${ex.id}">閉じる</button>
+          </div>
+          <div class="card-danger-zone">
+            <div class="danger-zone-label">削除操作</div>
+            <button type="button" class="btn-delete-ex-card" data-delete-ex="${ex.id}">この種目を削除</button>
+          </div>` : ''}
       </div>
     </div>`;
 }
@@ -911,7 +982,7 @@ function renderHome(){
   const date = getWorkDate();
   const cards = draft.exercises.map(renderWorkoutCard).join('');
   const statusBar = renderStatusBar(draft);
-  const saveLabel = '記録を保存';
+  const saveLabel = '完了して戻る';
   const canCopyToToday = !isToday(date) && draft.exercises.length;
   const dateLabel = formatDateWithWeekday(date);
 
@@ -928,9 +999,13 @@ function renderHome(){
     </header>
     <main>
       ${statusBar}
-      ${draft.exercises.length ? '<div class="save-hint">入力後は「記録を保存」をタップしてください</div>' : ''}
+      ${draft.exercises.length ? '<div class="save-hint">入力内容は自動保存されます</div>' : ''}
       ${cards || '<div class="empty-state"><div class="big">🏋️</div>種目を追加して<br>トレーニングを記録しましょう</div>'}
-      ${canResetDay ? '<button type="button" class="btn-reset-day" data-action="reset-day">この日のメニューをリセット</button>' : ''}
+      ${canResetDay ? `
+        <div class="day-danger-zone">
+          <div class="danger-zone-label">この日の記録をすべて削除</div>
+          <button type="button" class="btn-reset-day" data-action="reset-day">この日のメニューをリセット</button>
+        </div>` : ''}
     </main>
     <div class="finish-bar">
       ${canCopyToToday ? '<button class="btn-copy-ex" data-action="copy-to-today">📋 本日にコピー</button>' : ''}
@@ -1048,7 +1123,7 @@ function renderCalendar(){
 function attachHandlers(){
   const app=document.getElementById('app');
 
-  app.querySelector('[data-action="back-calendar"]')?.addEventListener('click',()=>{ openCalendarScreen(); render(); });
+  app.querySelector('[data-action="back-calendar"]')?.addEventListener('click',async()=>{ await persist(); openCalendarScreen(); render(); });
   app.querySelector('[data-action="back-history"]')?.addEventListener('click',()=>{ state.screen={name:'history'}; render(); });
   app.querySelector('[data-action="back-home"]')?.addEventListener('click',()=>{ state.screen={name:'home'}; render(); });
   app.querySelector('[data-action="history"]')?.addEventListener('click',()=>{ state.screen={name:'history'}; render(); });
@@ -1255,10 +1330,26 @@ function attachHandlers(){
       if(ex&&idx>0){
         ex.sets[idx].weight=ex.sets[idx-1].weight;
         ex.sets[idx].reps=ex.sets[idx-1].reps;
+        ex.sets[idx].done=ex.sets[idx-1].done;
         keepExerciseExpanded(exId);
         suppressCardCollapse();
         await persist(); render();
       }
+    };
+  });
+
+  app.querySelectorAll('[data-set-done]').forEach(el=>{
+    bindCardKeepOpen(el);
+    el.onclick=async()=>{
+      const exId=el.getAttribute('data-ex-id');
+      const draft=ensureDraft();
+      const ex=draft.exercises.find(e=>e.id===exId);
+      const idx=+el.getAttribute('data-set-idx');
+      if(!ex) return;
+      ex.sets[idx].done=!ex.sets[idx].done;
+      keepExerciseExpanded(exId);
+      suppressCardCollapse();
+      await persist(); render();
     };
   });
 
@@ -1269,12 +1360,12 @@ function attachHandlers(){
       const draft=ensureDraft();
       const ex=draft.exercises.find(e=>e.id===exId);
       const idx=+el.getAttribute('data-set-idx');
-      if(ex){
-        ex.sets.splice(idx,1);
-        keepExerciseExpanded(exId);
-        suppressCardCollapse();
-        await persist(); render();
-      }
+      if(!ex || ex.sets.length <= 1) return;
+      if(!confirm(`セット${idx+1}を削除しますか？`)) return;
+      ex.sets.splice(idx,1);
+      keepExerciseExpanded(exId);
+      suppressCardCollapse();
+      await persist(); render();
     };
   });
 
@@ -1297,10 +1388,8 @@ function attachHandlers(){
 async function saveWorkout(){
   const draft=ensureDraft();
   if(!draft.exercises.length){ alert('種目を追加してください'); return; }
-  const idx=state.history.findIndex(h=>h.date===draft.date);
-  const entry=JSON.parse(JSON.stringify(draft));
-  if(idx>=0) state.history[idx]=entry; else state.history.push(entry);
-  state.draft=JSON.parse(JSON.stringify(entry));
+  syncDraftToHistory();
+  state.draft=JSON.parse(JSON.stringify(draft));
   state.workDate=null;
   state.expandedExIds=[];
   await persist();
@@ -1308,7 +1397,17 @@ async function saveWorkout(){
   render();
 }
 
+function syncDraftToHistory(){
+  const draft = state.draft;
+  if(!draft?.date || !draft.exercises?.length) return;
+  const entry = JSON.parse(JSON.stringify(draft));
+  const idx = state.history.findIndex(h=>h.date===draft.date);
+  if(idx>=0) state.history[idx]=entry;
+  else state.history.push(entry);
+}
+
 async function persist(){
+  syncDraftToHistory();
   await save(STORAGE.catalog,state.catalog);
   await save(STORAGE.circuits,state.circuits);
   await save(STORAGE.history,state.history);
@@ -1327,8 +1426,8 @@ async function init(){
   ]);
   state.catalog=catalog||DEFAULT_CATALOG;
   state.circuits=circuits?.length ? circuits : DEFAULT_YOUTUBE_CIRCUITS;
-  state.history=history||[];
-  state.draft=draft;
+  state.history=(history||[]).map(h=>({ ...h, exercises: (h.exercises||[]).map(normalizeExercise) }));
+  state.draft=draft ? normalizeDraft(draft) : null;
   state.workDate=workDate||null;
   const n=new Date();
   state.screen={name:'calendar',year:n.getFullYear(),month:n.getMonth()};
